@@ -36,10 +36,18 @@ def get_project(host: str) -> str:
         return ""
 
     parts = host.split(".")
+
+    # devploy.onrender.com OR www.devploy.run.place
     if len(parts) < 3:
         return ""
 
-    return parts[0]
+    project = parts[0]
+
+    # 🚨 ignore system domains
+    if project in ["devploy", "www"]:
+        return ""
+
+    return project
 
 
 # -------------------------------------------------
@@ -63,6 +71,14 @@ def serve(request: Request, full_path: str):
     project_path = os.path.join(PROJECTS_DIR, project)
 
     print("PROJECT PATH:", project_path)
+ #   project_path = os.path.join(PROJECTS_DIR, project)
+
+    if not project or not os.path.exists(project_path):
+        return JSONResponse({
+            "error": "Project not found",
+            "requested_project": project,
+            "available_projects": os.listdir(PROJECTS_DIR)
+        }, status_code=404)
 
     if not os.path.exists(project_path):
         return JSONResponse({
