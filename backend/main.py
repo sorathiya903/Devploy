@@ -15,5 +15,9 @@ def deploy(project_name: str, repo_url: str):
     )
 
     return {
-        "url": f"https://{project_name}.deploy.run.place"
+        "url": f"https://{project_name}.devploy.run.place"
     }
+
+@app.get("/")
+def welcome():
+    return {"message":"Server running"}
