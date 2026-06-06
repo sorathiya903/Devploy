@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Devploy</title>
+
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+    }
+
+    body {
+      background: radial-gradient(circle at top, #0f172a, #020617);
+      color: white;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .container {
+      width: 90%;
+      max-width: 500px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 16px;
+      padding: 25px;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 20px;
+      font-size: 28px;
+      background: linear-gradient(90deg, #60a5fa, #a78bfa);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    input {
+      width: 100%;
+      padding: 12px 14px;
+      margin: 10px 0;
+      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,0.1);
+      background: rgba(255,255,255,0.05);
+      color: white;
+      outline: none;
+      transition: 0.2s;
+    }
+
+    input:focus {
+      border-color: #60a5fa;
+      box-shadow: 0 0 10px #60a5fa55;
+    }
+
+    button {
+      width: 100%;
+      padding: 12px;
+      margin-top: 10px;
+      border: none;
+      border-radius: 10px;
+      background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+      color: white;
+      font-size: 16px;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+
+    button:hover {
+      transform: translateY(-2px);
+      opacity: 0.9;
+    }
+
+    .result {
+      margin-top: 20px;
+      padding: 12px;
+      border-radius: 10px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+      word-break: break-word;
+      min-height: 40px;
+    }
+
+    .label {
+      font-size: 12px;
+      opacity: 0.7;
+      margin-top: 5px;
+    }
+
+    .loading {
+      color: #60a5fa;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="container">
+    <h1>Devploy 🚀</h1>
+
+    <input id="project" placeholder="Project Name (e.g. my-app)" />
+    <input id="repo" placeholder="GitHub Repo URL" />
+
+    <button onclick="deploy()">Deploy</button>
+
+    <div class="result" id="result">
+      Enter details and click deploy
+    </div>
+  </div>
+
+  <script>
+    async function deploy() {
+      const project = document.getElementById("project").value.trim();
+      const repo = document.getElementById("repo").value.trim();
+      const result = document.getElementById("result");
+
+      if (!project || !repo) {
+        result.innerHTML = "⚠️ Please fill all fields";
+        return;
+      }
+
+      result.innerHTML = "⏳ Deploying... please wait";
+
+      try {
+        const res = await fetch(
+          `https://devploy.onrender.com/deploy?project_name=${project}&repo_url=${encodeURIComponent(repo)}`,
+          {
+            method: "POST"
+          }
+        );
+
+        const data = await res.json();
+
+        if (data.url) {
+          result.innerHTML = `
+            ✅ Deployed Successfully<br><br>
+            🔗 <a href="${data.url}" target="_blank" style="color:#60a5fa;">
+              ${data.url}
+            </a>
+          `;
+        } else {
+          result.innerHTML = "❌ Deployment failed";
+        }
+
+      } catch (err) {
+        result.innerHTML = "❌ Error connecting to server";
+      }
+    }
+  </script>
+
+</body>
+</html>
