@@ -155,12 +155,15 @@ def tree():
 # 8. HEALTH CHECK
 # -------------------------------------------------
 @app.get("/")
-def home():
-    return {
-        "message": "Devploy running 🚀",
-        "debug_url": "/debug",
-        "files_url": "/files"
-        }
+def root(request: Request):
+    host = request.headers.get("host", "")
+
+    project = get_project(host)
+
+    if project:
+        return FileResponse(f"projects/{project}/index.html")
+
+    return {"message": "Devploy running 🚀"}
 
 
 
