@@ -49,81 +49,6 @@ def get_project(host: str) -> str:
 
     return project
 
-
-# -------------------------------------------------
-# 4. STATIC FILE SERVER (CORE)
-# -------------------------------------------------
-@app.get("/{full_path:path}")
-def serve(request: Request, full_path: str):
-
-    host = request.headers.get("host", "")
-    project = get_project(host)
-
-    print("HOST:", host)
-    print("PROJECT:", project)
-
-    if not project:
-        return JSONResponse({
-            "error": "Invalid host",
-            "host_received": host
-        }, status_code=400)
-
-    project_path = os.path.join(PROJECTS_DIR, project)
-
-    print("PROJECT PATH:", project_path)
- #   project_path = os.path.join(PROJECTS_DIR, project)
-
-    if not project or not os.path.exists(project_path):
-        return JSONResponse({
-            "error": "Project not found",
-            "requested_project": project,
-            "available_projects": os.listdir(PROJECTS_DIR)
-        }, status_code=404)
-
-    if not os.path.exists(project_path):
-        return JSONResponse({
-            "error": "Project not found",
-            "checked_path": project_path,
-            "available_projects": os.listdir(PROJECTS_DIR) if os.path.exists(PROJECTS_DIR) else []
-        }, status_code=404)
-
-    # default route
-    if full_path == "" or full_path == "/":
-        index_file = os.path.join(project_path, "index.html")
-
-        print("INDEX FILE:", index_file)
-
-        if os.path.exists(index_file):
-            return FileResponse(index_file)
-
-        return JSONResponse({
-            "error": "index.html missing",
-            "project_path": project_path
-        }, status_code=404)
-
-    # serve assets safely
-    file_path = os.path.join(project_path, full_path)
-
-    print("FILE PATH:", file_path)
-
-    if os.path.exists(file_path):
-        return FileResponse(file_path)
-
-    # fallback SPA
-    index_file = os.path.join(project_path, "index.html")
-
-    if os.path.exists(index_file):
-        return FileResponse(index_file)
-
-    return JSONResponse({
-        "error": "File not found",
-        "requested": full_path
-    }, status_code=404)
-
-
-# -------------------------------------------------
-# 5. DEPLOY (WITH FULL DEBUG LOGS)
-# -------------------------------------------------
 @app.post("/deploy")
 def deploy(project_name: str, repo_url: str):
 
@@ -226,3 +151,80 @@ def home():
         "debug_url": "/debug",
         "files_url": "/files"
         }
+
+
+
+# -------------------------------------------------
+# 4. STATIC FILE SERVER (CORE)
+# -------------------------------------------------
+@app.get("/{full_path:path}")
+def serve(request: Request, full_path: str):
+
+    host = request.headers.get("host", "")
+    project = get_project(host)
+
+    print("HOST:", host)
+    print("PROJECT:", project)
+
+    if not project:
+        return JSONResponse({
+            "error": "Invalid host",
+            "host_received": host
+        }, status_code=400)
+
+    project_path = os.path.join(PROJECTS_DIR, project)
+
+    print("PROJECT PATH:", project_path)
+ #   project_path = os.path.join(PROJECTS_DIR, project)
+
+    if not project or not os.path.exists(project_path):
+        return JSONResponse({
+            "error": "Project not found",
+            "requested_project": project,
+            "available_projects": os.listdir(PROJECTS_DIR)
+        }, status_code=404)
+
+    if not os.path.exists(project_path):
+        return JSONResponse({
+            "error": "Project not found",
+            "checked_path": project_path,
+            "available_projects": os.listdir(PROJECTS_DIR) if os.path.exists(PROJECTS_DIR) else []
+        }, status_code=404)
+
+    # default route
+    if full_path == "" or full_path == "/":
+        index_file = os.path.join(project_path, "index.html")
+
+        print("INDEX FILE:", index_file)
+
+        if os.path.exists(index_file):
+            return FileResponse(index_file)
+
+        return JSONResponse({
+            "error": "index.html missing",
+            "project_path": project_path
+        }, status_code=404)
+
+    # serve assets safely
+    file_path = os.path.join(project_path, full_path)
+
+    print("FILE PATH:", file_path)
+
+    if os.path.exists(file_path):
+        return FileResponse(file_path)
+
+    # fallback SPA
+    index_file = os.path.join(project_path, "index.html")
+
+    if os.path.exists(index_file):
+        return FileResponse(index_file)
+
+    return JSONResponse({
+        "error": "File not found",
+        "requested": full_path
+    }, status_code=404)
+
+
+# -------------------------------------------------
+# 5. DEPLOY (WITH FULL DEBUG LOGS)
+# -------------------------------------------------
