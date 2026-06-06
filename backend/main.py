@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 import subprocess
 import os
 import requests
@@ -6,11 +6,68 @@ import zipfile
 import io
 import shutil
 
-app = FastAPI()
+
 
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECTS_DIR = os.path.join(BASE_DIR, "projects")
+
+from fastapi.responses import FileResponse, JSONResponse
+
+
+app = FastAPI()
+
+def get_project(host: str) -> str:
+    """
+    animationonhands.devploy.run.place → animationonhands
+    """
+    if not host:
+        return ""
+
+    parts = host.split(".")
+    if len(parts) < 3:
+        return ""
+
+    return parts[0]
+
+
+@app.get("/{full_path:path}")
+def serve_static(request: Request, full_path: str):
+    host = request.headers.get("host", "")
+    project = get_project(host)
+
+    if not project:
+        return JSONResponse({"error": "Invalid project"}, status_code=400)
+
+    project_path = os.path.join(BASE_DIR, project)
+
+    # If project doesn't exist
+    if not os.path.exists(project_path):
+        return JSONResponse({"error": "Project not found"}, status_code=404)
+
+    # Default route → index.html
+    if full_path == "" or full_path == "/":
+        index_file = os.path.join(project_path, "index.html")
+        if os.path.exists(index_file):
+            return FileResponse(index_file)
+        return JSONResponse({"error": "index.html missing"}, status_code=404)
+
+    # Serve static assets (css/js/images/etc)
+    file_path = os.path.join(project_path, full_path)
+
+    # Security: prevent path traversal
+    if not file_path.startswith(project_path):
+        return JSONResponse({"error": "Invalid path"}, status_code=403)
+
+    if os.path.exists(file_path):
+        return FileResponse(file_path)
+
+    # fallback → try index.html (SPA support like React)
+    index_file = os.path.join(project_path, "index.html")
+    if os.path.exists(index_file):
+        return FileResponse(index_file)
+
+    return JSONResponse({"error": "File not found"}, status_code=404)
 
 
 @app.post("/deploy")
