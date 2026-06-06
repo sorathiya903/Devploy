@@ -4,7 +4,7 @@ import os
 import requests
 import zipfile
 import io
-
+import shutil
 
 app = FastAPI()
 
@@ -16,38 +16,28 @@ PROJECTS_DIR = os.path.join(BASE_DIR, "projects")
 @app.post("/deploy")
 def deploy(project_name: str, repo_url: str):
 
-    os.makedirs(PROJECTS_DIR, exist_ok=True)
+    base_path = f"/opt/render/project/src/backend/projects/{project_name}"
 
-    project_path = os.path.join(PROJECTS_DIR, project_name)
+    subprocess.run(["git", "clone", repo_url, base_path], check=True)
 
-    if os.path.exists(project_path):
-        shutil.rmtree(project_path)
+    # Find nested folder (GitHub usually creates one folder inside)
+    items = os.listdir(base_path)
 
-    os.makedirs(project_path)
+    if len(items) == 1 and os.path.isdir(os.path.join(base_path, items[0])):
+        nested_path = os.path.join(base_path, items[0])
 
-    repo_url = repo_url.removesuffix(".git")
-    zip_url = f"{repo_url}/archive/refs/heads/main.zip"
+        # Move everything up
+        for item in os.listdir(nested_path):
+            shutil.move(
+                os.path.join(nested_path, item),
+                base_path
+            )
 
-    response = requests.get(zip_url)
-
-    if response.status_code != 200:
-        return {
-            "success": False,
-            "error": f"Could not download repository ({response.status_code})"
-        }
-
-    with zipfile.ZipFile(io.BytesIO(response.content)) as zip_ref:
-        zip_ref.extractall(project_path)
-
-    extracted = os.listdir(project_path)
+        shutil.rmtree(nested_path)
 
     return {
-        "success": True,
-        "project": project_name,
-        "project_path": project_path,
-        "files": extracted
+        "url": f"https://{project_name}.devploy.run.place"
     }
-
 
 @app.get("/files")
 def files():
