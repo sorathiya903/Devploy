@@ -167,8 +167,10 @@ if(
         }
 
       } catch (err) {
-        result.innerHTML = "❌ Error connecting to server";
+        result.innerHTML = "❌ Error connecting to server"+err;
+        console.error(err)
       }
+      
     }
   </script>
 
