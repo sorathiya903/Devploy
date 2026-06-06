@@ -3,23 +3,35 @@ from fastapi.responses import FileResponse, JSONResponse
 import os
 import subprocess
 import shutil
+import traceback
 
 app = FastAPI()
 
-# ----------------------------
-# BASE PATH CONFIG
-# ----------------------------
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+# -------------------------------------------------
+# 1. FIXED RENDER-SAFE PATH (VERY IMPORTANT)
+# -------------------------------------------------
+BASE_DIR = "/opt/render/project/src/backend"
 PROJECTS_DIR = os.path.join(BASE_DIR, "projects")
 
 
-# ----------------------------
-# HELPERS
-# ----------------------------
+# -------------------------------------------------
+# 2. DEBUG INFO ENDPOINT
+# -------------------------------------------------
+@app.get("/debug")
+def debug():
+    return {
+        "cwd": os.getcwd(),
+        "base_dir": BASE_DIR,
+        "projects_dir": PROJECTS_DIR,
+        "projects_dir_exists": os.path.exists(PROJECTS_DIR),
+        "projects_list": os.listdir(PROJECTS_DIR) if os.path.exists(PROJECTS_DIR) else []
+    }
+
+
+# -------------------------------------------------
+# 3. HOST → PROJECT NAME
+# -------------------------------------------------
 def get_project(host: str) -> str:
-    """
-    animationonhands.devploy.run.place → animationonhands
-    """
     if not host:
         return ""
 
@@ -30,101 +42,150 @@ def get_project(host: str) -> str:
     return parts[0]
 
 
-def safe_path(base: str, path: str) -> str:
-    """
-    Prevent path traversal attacks
-    """
-    final_path = os.path.join(base, path)
-    if not final_path.startswith(base):
-        return ""
-    return final_path
-
-
-# ----------------------------
-# STATIC SITE HOSTING
-# ----------------------------
+# -------------------------------------------------
+# 4. STATIC FILE SERVER (CORE)
+# -------------------------------------------------
 @app.get("/{full_path:path}")
-def serve_static(request: Request, full_path: str):
+def serve(request: Request, full_path: str):
+
     host = request.headers.get("host", "")
     project = get_project(host)
 
+    print("HOST:", host)
+    print("PROJECT:", project)
+
     if not project:
-        return JSONResponse({"error": "Invalid project"}, status_code=400)
+        return JSONResponse({
+            "error": "Invalid host",
+            "host_received": host
+        }, status_code=400)
 
     project_path = os.path.join(PROJECTS_DIR, project)
 
-    if not os.path.exists(project_path):
-        return JSONResponse({"error": "Project not found"}, status_code=404)
+    print("PROJECT PATH:", project_path)
 
-    # default → index.html
+    if not os.path.exists(project_path):
+        return JSONResponse({
+            "error": "Project not found",
+            "checked_path": project_path,
+            "available_projects": os.listdir(PROJECTS_DIR) if os.path.exists(PROJECTS_DIR) else []
+        }, status_code=404)
+
+    # default route
     if full_path == "" or full_path == "/":
         index_file = os.path.join(project_path, "index.html")
+
+        print("INDEX FILE:", index_file)
+
         if os.path.exists(index_file):
             return FileResponse(index_file)
-        return JSONResponse({"error": "index.html missing"}, status_code=404)
 
-    # serve static assets
-    file_path = safe_path(project_path, full_path)
+        return JSONResponse({
+            "error": "index.html missing",
+            "project_path": project_path
+        }, status_code=404)
 
-    if not file_path:
-        return JSONResponse({"error": "Invalid path"}, status_code=403)
+    # serve assets safely
+    file_path = os.path.join(project_path, full_path)
+
+    print("FILE PATH:", file_path)
 
     if os.path.exists(file_path):
         return FileResponse(file_path)
 
-    # fallback SPA support
+    # fallback SPA
     index_file = os.path.join(project_path, "index.html")
+
     if os.path.exists(index_file):
         return FileResponse(index_file)
 
-    return JSONResponse({"error": "File not found"}, status_code=404)
+    return JSONResponse({
+        "error": "File not found",
+        "requested": full_path
+    }, status_code=404)
 
 
-# ----------------------------
-# DEPLOY SYSTEM
-# ----------------------------
+# -------------------------------------------------
+# 5. DEPLOY (WITH FULL DEBUG LOGS)
+# -------------------------------------------------
 @app.post("/deploy")
 def deploy(project_name: str, repo_url: str):
 
-    base_path = os.path.join(PROJECTS_DIR, project_name)
+    try:
+        base_path = os.path.join(PROJECTS_DIR, project_name)
 
-    # clone repo
-    subprocess.run(["git", "clone", repo_url, base_path], check=True)
+        print("DEPLOY START")
+        print("PROJECT:", project_name)
+        print("REPO:", repo_url)
+        print("TARGET PATH:", base_path)
 
-    # fix nested github folder issue
-    items = os.listdir(base_path)
+        os.makedirs(PROJECTS_DIR, exist_ok=True)
 
-    if len(items) == 1:
-        nested = os.path.join(base_path, items[0])
-        if os.path.isdir(nested):
+        # clone repo
+        result = subprocess.run(
+            ["git", "clone", repo_url, base_path],
+            capture_output=True,
+            text=True
+        )
 
-            for item in os.listdir(nested):
-                shutil.move(
-                    os.path.join(nested, item),
-                    base_path
-                )
+        print("GIT STDOUT:", result.stdout)
+        print("GIT STDERR:", result.stderr)
 
-            shutil.rmtree(nested)
+        if result.returncode != 0:
+            return {
+                "error": "Git clone failed",
+                "details": result.stderr
+            }
 
-    return {
-        "message": "Deployed successfully",
-        "url": f"https://{project_name}.devploy.run.place"
-    }
+        # fix nested folder issue
+        items = os.listdir(base_path)
+        print("AFTER CLONE:", items)
+
+        if len(items) == 1:
+            nested = os.path.join(base_path, items[0])
+
+            if os.path.isdir(nested):
+                print("NESTED FOLDER DETECTED:", nested)
+
+                for item in os.listdir(nested):
+                    shutil.move(
+                        os.path.join(nested, item),
+                        base_path
+                    )
+
+                shutil.rmtree(nested)
+
+        return {
+            "message": "Deploy success",
+            "project": project_name,
+            "url": f"https://{project_name}.devploy.run.place"
+        }
+
+    except Exception as e:
+        return {
+            "error": "Deploy crashed",
+            "exception": str(e),
+            "trace": traceback.format_exc()
+        }
 
 
-# ----------------------------
-# DEBUG: FILE SYSTEM INFO
-# ----------------------------
+# -------------------------------------------------
+# 6. FILE SYSTEM DEBUG
+# -------------------------------------------------
 @app.get("/files")
 def files():
     return {
         "cwd": os.getcwd(),
         "base_dir": BASE_DIR,
         "projects_dir": PROJECTS_DIR,
+        "exists": os.path.exists(PROJECTS_DIR),
         "projects": os.listdir(PROJECTS_DIR) if os.path.exists(PROJECTS_DIR) else []
     }
 
 
+# -------------------------------------------------
+# 7. TREE DEBUG
+# -------------------------------------------------
 @app.get("/tree")
 def tree():
 
@@ -139,11 +200,13 @@ def tree():
     return data
 
 
-# ----------------------------
-# HEALTH CHECK
-# ----------------------------
+# -------------------------------------------------
+# 8. HEALTH CHECK
+# -------------------------------------------------
 @app.get("/")
-def welcome():
+def home():
     return {
-        "message": "Devploy server running 🚀"
-    }
+        "message": "Devploy running 🚀",
+        "debug_url": "/debug",
+        "files_url": "/files"
+        }
