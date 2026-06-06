@@ -14,6 +14,8 @@ COPY . .
 
 RUN mkdir -p /app/projects
 
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+
 EXPOSE 80
 EXPOSE 8000
 
