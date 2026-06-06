@@ -35,16 +35,26 @@ def get_project(host: str) -> str:
     if not host:
         return ""
 
+    host = host.split(":")[0].lower()
+
+    # remove www
+    if host.startswith("www."):
+        host = host.replace("www.", "")
+
     parts = host.split(".")
 
-    # devploy.onrender.com OR www.devploy.run.place
+    # main Render domain → no project
+    if "onrender.com" in host:
+        return ""
+
+    # must have at least: project.domain.tld
     if len(parts) < 3:
         return ""
 
     project = parts[0]
 
-    # 🚨 ignore system domains
-    if project in ["devploy", "www"]:
+    # system keywords
+    if project in ["devploy", "www", "api"]:
         return ""
 
     return project
