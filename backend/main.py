@@ -249,13 +249,17 @@ def deploy(
 
     try:
 
+        # Remove old deployment
         if os.path.exists(project_path):
             shutil.rmtree(project_path)
 
+        # Clone repository
         result = subprocess.run(
             [
                 "git",
                 "clone",
+                "--depth",
+                "1",
                 repo_url,
                 project_path
             ],
@@ -268,10 +272,47 @@ def deploy(
                 result.stderr
             )
 
+        # Determine actual website directory
+        deploy_path = project_path
+
+        if base_dir:
+
+            deploy_path = os.path.join(
+                project_path,
+                base_dir
+            )
+
+            if not os.path.isdir(
+                deploy_path
+            ):
+                raise Exception(
+                    f"Directory '{base_dir}' not found"
+                )
+
+        # Check index.html exists
+        index_file = os.path.join(
+            deploy_path,
+            "index.html"
+        )
+
+        if not os.path.exists(
+            index_file
+        ):
+            raise Exception(
+                f"index.html not found in '{base_dir or '/'}'"
+            )
+
         url = (
             f"https://{project_name}.devploy.run.place"
         )
 
+        # Remove previous DB entry
+        projects.delete_many({
+            "owner": username,
+            "name": project_name
+        })
+
+        # Save project
         projects.insert_one({
             "owner": username,
             "name": project_name,
@@ -294,8 +335,6 @@ def deploy(
             "error": str(e),
             "trace": traceback.format_exc()
         }
-
-
 # ==========================================
 # DEBUG
 # ==========================================
