@@ -165,11 +165,21 @@ def deploy_worker(project_name, repo_url, base_dir, username):
 
             await push_log(project_name, "Building project...", "building")
             time.sleep(2)
+            final_path = os.path.join(PROJECTS_DIR, project_name)
+            if os.path.exists(final_path):
+                shutil.rmtree(final_path)
+
+            shutil.copytree(  f"/tmp/{project_name}",  final_path)
+
+            await push_log(project_name, "Publishing project...", "finalizing")
+
+            await push_log(project_name, "Project deployed successfully 🚀", "deployed")
 
             await push_log(project_name, "Finalizing deployment...", "finalizing")
             time.sleep(1)
 
             await push_log(project_name, "Deployment complete 🚀", "deployed")
+            
 
         except Exception as e:
             await push_log(project_name, f"Error: {str(e)}", "failed")
