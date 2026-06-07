@@ -371,7 +371,7 @@ async function deploy() {
 
   try {
 
-    connectLogs(data.project);
+    
 
     const res = await fetch("https://devploy.onrender.com/deploy", {
       method: "POST",
@@ -390,7 +390,7 @@ async function deploy() {
 
     if (!res.ok) throw new Error(data.error || "Deploy failed");
 
-    
+    connectLogs(data.project)
 
     loadProjects();
 
