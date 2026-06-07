@@ -228,110 +228,93 @@ def me(
 # DEPLOY
 # ==========================================
 
-
 @app.post("/deploy")
-def deploy(
-    data: DeployRequest,
-    authorization: str = Header(None)
-):
+def deploy(data: DeployRequest, authorization: str = Header(None)):
 
-    username = current_user(
-        authorization
-    )
+    username = current_user(authorization)
 
     project_name = data.project_name.lower().strip()
     repo_url = data.repo_url.strip()
     base_dir = data.base_dir.strip()
 
-    project_path = os.path.join(
-        PROJECTS_DIR,
-        project_name
-    )
+    project_path = os.path.join(PROJECTS_DIR, project_name)
+    temp_clone = os.path.join("/tmp", f"clone_{project_name}")
 
-    temp_clone = os.path.join(
-        "/tmp",
-        f"clone_{project_name}"
-    )
+    # clean old temp
+    if os.path.exists(temp_clone):
+        shutil.rmtree(temp_clone)
+
+    # create DB entry FIRST (important for logs)
+    projects.insert_one({
+        "owner": username,
+        "name": project_name,
+        "url": "",
+        "repo_url": repo_url,
+        "base_dir": base_dir,
+        "status": "queued",
+        "logs": [],
+        "created_at": datetime.utcnow()
+    })
+
+    def log(msg, status=None):
+        update = {"$push": {"logs": msg}}
+        if status:
+            update["$set"] = {"status": status}
+
+        projects.update_one(
+            {"owner": username, "name": project_name},
+            update
+        )
 
     try:
 
-        if os.path.exists(temp_clone):
-            shutil.rmtree(temp_clone)
+        log("🚀 Deployment started", "cloning")
 
-        if os.path.exists(project_path):
-            shutil.rmtree(project_path)
-
-        # Clone repo to temp folder
         result = subprocess.run(
-            [
-                "git",
-                "clone",
-                "--depth",
-                "1",
-                repo_url,
-                temp_clone
-            ],
+            ["git", "clone", "--depth", "1", repo_url, temp_clone],
             capture_output=True,
             text=True
         )
 
         if result.returncode != 0:
-            raise Exception(
-                result.stderr
-            )
+            log("❌ Git clone failed", "failed")
+            return {"success": False, "error": result.stderr}
+
+        log("📦 Repository cloned", "building")
 
         source_folder = temp_clone
 
         if base_dir:
+            source_folder = os.path.join(temp_clone, base_dir)
 
-            source_folder = os.path.join(
-                temp_clone,
-                base_dir
-            )
+            if not os.path.isdir(source_folder):
+                log("❌ Base directory not found", "failed")
+                return {"success": False, "error": "Base dir not found"}
 
-            if not os.path.isdir(
-                source_folder
-            ):
-                raise Exception(
-                    f"Directory '{base_dir}' not found"
-                )
+        index_file = os.path.join(source_folder, "index.html")
 
-        index_file = os.path.join(
-            source_folder,
-            "index.html"
+        if not os.path.exists(index_file):
+            log("❌ index.html missing", "failed")
+            return {"success": False, "error": "index.html missing"}
+
+        log("📁 Preparing files...", "finalizing")
+
+        if os.path.exists(project_path):
+            shutil.rmtree(project_path)
+
+        shutil.copytree(source_folder, project_path)
+
+        url = f"https://{project_name}.devploy.run.place"
+
+        projects.update_one(
+            {"owner": username, "name": project_name},
+            {"$set": {
+                "status": "deployed",
+                "url": url
+            }}
         )
 
-        if not os.path.exists(
-            index_file
-        ):
-            raise Exception(
-                "index.html not found"
-            )
-
-        # Copy selected folder directly
-        shutil.copytree(
-            source_folder,
-            project_path
-        )
-
-        url = (
-            f"https://{project_name}.devploy.run.place"
-        )
-
-        projects.delete_many({
-            "owner": username,
-            "name": project_name
-        })
-
-        projects.insert_one({
-            "owner": username,
-            "name": project_name,
-            "url": url,
-            "repo_url": repo_url,
-            "base_dir": base_dir,
-            "status": "deployed",
-            "created_at": datetime.utcnow()
-        })
+        log("🎉 Published successfully", "deployed")
 
         return {
             "success": True,
@@ -340,20 +323,16 @@ def deploy(
 
     except Exception as e:
 
+        log(f"🔥 Error: {str(e)}", "failed")
+
         return {
             "success": False,
-            "error": str(e),
-            "trace": traceback.format_exc()
+            "error": str(e)
         }
 
     finally:
-
-        if os.path.exists(
-            temp_clone
-        ):
-            shutil.rmtree(
-                temp_clone
-            )
+        if os.path.exists(temp_clone):
+            shutil.rmtree(temp_clone)
             
             
 # ==========================================
