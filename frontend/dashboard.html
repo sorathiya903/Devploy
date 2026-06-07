@@ -371,7 +371,7 @@ async function deploy() {
 
   try {
 
-    connectLogs(projectName);
+    connectLogs(data.project);
 
     const res = await fetch("https://devploy.onrender.com/deploy", {
       method: "POST",
@@ -390,11 +390,7 @@ async function deploy() {
 
     if (!res.ok) throw new Error(data.error || "Deploy failed");
 
-    document.getElementById("result").style.display = "block";
-    document.getElementById("result").innerHTML = `
-      <b>Deployed Successfully 🚀</b><br><br>
-      <a href="${data.url}" target="_blank">${data.url}</a>
-    `;
+    
 
     loadProjects();
 
