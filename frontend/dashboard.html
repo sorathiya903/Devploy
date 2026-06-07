@@ -353,7 +353,9 @@ console.log("data arrived ")
   };
 }
 
-
+socket.onclose = () => {
+  setTimeout(() => connectLogs(project), 2000);
+};
 /* ================= DEPLOY ================= */
 
 async function deploy() {
