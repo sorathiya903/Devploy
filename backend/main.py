@@ -140,53 +140,103 @@ async def deploy_ws(websocket: WebSocket, project_name: str):
     except:
         manager.disconnect(project_name, websocket)
 
+
 def deploy_worker(project_name, repo_url, base_dir, username):
 
-    import time
-    import subprocess
 
     async def run():
         try:
+            repo_path = f"/tmp/{project_name}"
+
             await push_log(project_name, "Queued deployment", "queued")
 
+            # -------------------------
+            # CLONE REPOSITORY
+            # -------------------------
             await push_log(project_name, "Cloning repository...", "cloning")
 
             result = subprocess.run(
-                ["git", "clone", "--depth", "1", repo_url, f"/tmp/{project_name}"],
+                ["git", "clone", "--depth", "1", repo_url, repo_path],
                 capture_output=True,
                 text=True
             )
 
             if result.returncode != 0:
                 await push_log(project_name, "Clone failed", "failed")
+                await push_log(project_name, result.stderr or "git error", "failed")
                 return
 
             await push_log(project_name, "Repository cloned", "cloned")
 
+            # -------------------------
+            # RESOLVE SOURCE PATH
+            # -------------------------
+            source_path = repo_path
+
+            if base_dir and base_dir.strip():
+                source_path = os.path.join(repo_path, base_dir.strip())
+
+            # safety check
+            if not os.path.exists(source_path):
+                await push_log(
+                    project_name,
+                    f"Base directory not found: {base_dir}",
+                    "failed"
+                )
+                return
+
+            index_file = os.path.join(source_path, "index.html")
+
+            if not os.path.exists(index_file):
+                await push_log(
+                    project_name,
+                    "index.html not found in selected directory",
+                    "failed"
+                )
+                return
+
+            # -------------------------
+            # BUILD STEP (optional placeholder)
+            # -------------------------
             await push_log(project_name, "Building project...", "building")
-            time.sleep(2)
+            time.sleep(1)
+
+            # -------------------------
+            # COPY ONLY BASE DIR CONTENTS
+            # -------------------------
             final_path = os.path.join(PROJECTS_DIR, project_name)
+
             if os.path.exists(final_path):
                 shutil.rmtree(final_path)
 
-            shutil.copytree(  f"/tmp/{project_name}",  final_path)
+            os.makedirs(final_path, exist_ok=True)
 
-            await push_log(project_name, "Publishing project...", "finalizing")
+            # copy only contents (not .git, not full repo)
+            for item in os.listdir(source_path):
 
-            await push_log(project_name, "Project deployed successfully 🚀", "deployed")
+                if item == ".git":
+                    continue  # skip git metadata
 
+                src_item = os.path.join(source_path, item)
+                dst_item = os.path.join(final_path, item)
+
+                if os.path.isdir(src_item):
+                    shutil.copytree(src_item, dst_item)
+                else:
+                    shutil.copy2(src_item, dst_item)
+
+            # -------------------------
+            # FINALIZE
+            # -------------------------
             await push_log(project_name, "Finalizing deployment...", "finalizing")
             time.sleep(1)
 
             await push_log(project_name, "Deployment complete 🚀", "deployed")
-            
 
         except Exception as e:
             await push_log(project_name, f"Error: {str(e)}", "failed")
 
-    import asyncio
     asyncio.run(run())
-
 
 def create_token(username):
     payload = {
