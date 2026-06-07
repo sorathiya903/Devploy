@@ -326,6 +326,7 @@ function showCreate() {
 /* ================= WEBSOCKET LOGS ================= */
 
 let socket;
+const API = "https://devploy.onrender.com";
 
 function connectLogs(project) {
 console.log("Connecting ws...")
@@ -335,7 +336,9 @@ console.log("Connecting ws...")
   document.getElementById("logs").innerHTML = "";
 
   socket = new WebSocket(`wss://devploy.onrender.com/ws/deploy/${project}`);
-
+socket.onclose = () => {
+  setTimeout(() => connectLogs(project), 2000);
+};
   socket.onmessage = (event) => {
     
     const data = JSON.parse(event.data);
@@ -353,9 +356,7 @@ console.log("data arrived ")
   };
 }
 
-socket.onclose = () => {
-  setTimeout(() => connectLogs(project), 2000);
-};
+
 /* ================= DEPLOY ================= */
 
 async function deploy() {
@@ -409,7 +410,7 @@ async function deploy() {
 
 /* ================= AUTH + PROJECTS ================= */
 
-const API = "https://devploy.onrender.com";
+
 const token = localStorage.getItem("token");
 
 if (!token) location.href = "auth.html";
