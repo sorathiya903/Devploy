@@ -328,7 +328,7 @@ function showCreate() {
 let socket;
 
 function connectLogs(project) {
-
+console.log("Connecting ws...")
   if (socket) socket.close();
 
   document.getElementById("logBox").style.display = "block";
@@ -337,8 +337,10 @@ function connectLogs(project) {
   socket = new WebSocket(`wss://devploy.onrender.com/ws/deploy/${project}`);
 
   socket.onmessage = (event) => {
+    
     const data = JSON.parse(event.data);
-
+console.log("data arrived ")
+    console.log(data)
     const div = document.createElement("div");
     div.style.padding = "10px";
     div.style.margin = "6px 0";
