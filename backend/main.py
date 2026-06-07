@@ -16,7 +16,13 @@ import subprocess
 import shutil
 import traceback
 import os
+import asyncio
 
+def safe_broadcast(project, message):
+    loop = asyncio.get_event_loop()
+
+    if loop.is_running():
+        asyncio.create_task(manager.send(project, message))
 
 # ==========================================
 # CONFIG
@@ -91,12 +97,13 @@ manager = ConnectionManager()
 
 
 async def push_log(project, message, status=None):
+
     data = {
         "msg": message,
-        "status": status
+        "status": status,
+        "time": datetime.utcnow().isoformat()
     }
 
-    # save to DB
     projects.update_one(
         {"name": project},
         {
@@ -105,11 +112,7 @@ async def push_log(project, message, status=None):
         }
     )
 
-    # send to websocket clients
-    import asyncio
-    asyncio.create_task(manager.send(project, data))
-
-
+    safe_broadcast(project, data)
 
 @app.websocket("/ws/deploy/{project_name}")
 async def deploy_ws(websocket: WebSocket, project_name: str):
@@ -118,17 +121,16 @@ async def deploy_ws(websocket: WebSocket, project_name: str):
 
     try:
         while True:
-            # keep connection alive
-            await websocket.receive_text()
-
+            await asyncio.sleep(30)
     except:
         manager.disconnect(project_name, websocket)
-
-
 
 def deploy_worker(project_name, repo_url, base_dir, username):
 
     import asyncio
+
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
 
     async def run():
 
@@ -144,22 +146,22 @@ def deploy_worker(project_name, repo_url, base_dir, username):
         )
 
         if result.returncode != 0:
-            await push_log(project_name, "Clone failed", "failed")
+            await push_log(project_name, "Clone failed ❌", "failed")
             return
 
         await push_log(project_name, "Repository cloned", "cloned")
 
         await push_log(project_name, "Building project...", "building")
 
-        # simulate build
         time.sleep(1)
 
         await push_log(project_name, "Finalizing deployment...", "finalizing")
 
-        await push_log(project_name, "Deployment complete 🚀", "deployed")
+        project_url = f"https://{project_name}.devploy.run.place"
 
-    asyncio.run(run())
+        await push_log(project_name, f"Live at {project_url}", "deployed")
 
+    loop.run_until_complete(run())
 
 
 def create_token(username):
@@ -336,8 +338,10 @@ def deploy(data: DeployRequest, authorization: str = Header(None)):
     ).start()
 
     return {
-        "success": True,
-        "message": "Deployment started"
+    "success": True,
+    "message": "Deployment started",
+    "project": data.project_name,
+    "ws": f"wss://devploy.onrender.com/ws/deploy/{data.project_name}"
     }
 
 
