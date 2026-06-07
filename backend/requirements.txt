@@ -5,3 +5,4 @@ pydantic
 pymongo
 python-jose[cryptography]
 argon2-cffi
+websockets
