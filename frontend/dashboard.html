@@ -405,7 +405,15 @@ document
 )
 .value
 .trim();
+const baseDir =
+document
+.getElementById(
+"baseDir"
+)
+.value
+.trim();
 
+  
 if(!projectName){
 
 alert(
@@ -450,15 +458,24 @@ try{
 
 const res =
 await fetch(
-`${API}/deploy?project_name=${encodeURIComponent(projectName)}&repo_url=${encodeURIComponent(repoUrl)}`,
+`${API}/deploy`,
 {
 method:"POST",
+
 headers:{
-Authorization:
-`Bearer ${token}`
-}
+"Content-Type":"application/json",
+Authorization:`Bearer ${token}`
+},
+
+body:JSON.stringify({
+project_name:projectName,
+repo_url:repoUrl,
+base_dir:baseDir
+})
+
 }
 );
+
 
 const data =
 await res.json();
