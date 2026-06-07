@@ -1,3 +1,6 @@
 fastapi
 uvicorn
 requests
+pymongo
+python-jose[cryptography]
+argon2-cffi
