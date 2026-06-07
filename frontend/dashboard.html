@@ -224,399 +224,255 @@ cursor:pointer;
   margin:6px 0;
   border-radius:10px;
   font-weight:600;
-  border-left:4px solid #2563eb;
+  border-left:4px solid red
   }
 
 </style></head>
-<body><header><div class="logo">Devploy</div>
-  
+<body>
+
+<header>
+  <div class="logo">Devploy</div>
+
   <div class="right">
-  <span id="username" class="username">Loading...</span>
+    <span id="username" class="username">Loading...</span>
 
-  <button onclick="toggleMenu()">☰</button>
+    <!-- MORE BUTTON -->
+    <button onclick="toggleMenu()" style="font-size:20px;background:none;border:none;cursor:pointer;">
+      ⋮
+    </button>
 
-  <div id="menu" style="display:none; position:absolute; right:20px; top:60px; background:white; padding:10px; border-radius:10px; box-shadow:0 5px 20px rgba(0,0,0,.1)">
-    <button onclick="showCreate()">New Project</button>
-    <button onclick="logout()">Logout</button>
+    <div id="menu"
+      style="display:none; position:absolute; right:20px; top:60px; background:white; padding:10px; border-radius:10px; box-shadow:0 5px 20px rgba(0,0,0,.1)">
+
+      <button onclick="showCreate()">New Project</button>
+      <button onclick="showProjects()">Show Projects</button>
+      <button onclick="logout()">Logout</button>
+
+    </div>
   </div>
+</header>
+
+
+<div class="container">
+
+  <!-- ================= PROJECTS VIEW ================= -->
+  <div id="projectsView">
+
+    <h2 class="section-title">Your Projects</h2>
+
+    <div id="projectsContainer"></div>
+
   </div>
-  </header><div class="container">
-  
-  
-  <div class="deploy-box"><h3>Create New Project</h3><input
-id="projectName"
-placeholder="Project Name">
 
-<input
-id="repoUrl"
-placeholder="GitHub Repository URL">
-<div class="form-group">
-  
-  <input
-    type="text"
-    id="baseDir"
-    placeholder="Base Directory: frontend"
-  >
-  <small>
-    Optional. Leave empty if index.html is in the repository root.
-    Example: frontend, website, apps/web
-  </small>
-</div>
-<button
-id="deployBtn"
-class="deploy-btn">
-Deploy Project
-</button>
 
-<div
-id="result"
-class="result">
-</div></div>
-    
-    <div id="logBox" style="display:none; margin-top:20px; padding:15px; background:#f3f4f6; border-radius:12px;">
-  <h3>Deployment Logs</h3>
-  <div id="logs"></div>
+  <!-- ================= CREATE PROJECT VIEW ================= -->
+  <div id="createView" style="display:none;">
+
+    <div class="deploy-box">
+      <h3>Create New Project</h3>
+
+      <input id="projectName" placeholder="Project Name">
+      <input id="repoUrl" placeholder="GitHub Repository URL">
+
+      <div class="form-group">
+        <input type="text" id="baseDir" placeholder="Base Directory: frontend">
+        <small>
+          Optional. Leave empty if index.html is in root.
+        </small>
+      </div>
+
+      <button id="deployBtn" class="deploy-btn">
+        Deploy Project
+      </button>
+
+      <div id="result" class="result"></div>
     </div>
 
-    
-    <h2 class="section-title">
-Your Projects
-</h2><div id="projectsContainer">
-</div></div>
-  
-  
-  <script>
+    <!-- LOG BOX -->
+    <div id="logBox"
+      style="display:none;margin-top:20px;padding:15px;border-radius:12px;background:#f3f4f6;">
+      <h3>Deployment Logs</h3>
+      <div id="logs"></div>
+    </div>
 
-function showCreate(){
-  document.getElementById("projectsContainer").style.display="none";
-  document.querySelector(".deploy-box").style.display="block";
-}
+  </div>
 
-function showProjects(){
-  document.getElementById("projectsContainer").style.display="block";
-  document.querySelector(".deploy-box").style.display="none";
-}
+</div>
 
-function toggleMenu(){
+
+<script>
+
+function toggleMenu() {
   const m = document.getElementById("menu");
-  m.style.display = m.style.display==="none" ? "block" : "none";
+  m.style.display = (m.style.display === "block") ? "none" : "block";
 }
 
-    let socket;
+function showProjects() {
+  document.getElementById("projectsView").style.display = "block";
+  document.getElementById("createView").style.display = "none";
+  document.getElementById("menu").style.display = "none";
+}
 
-function connectLogs(project){
+function showCreate() {
+  document.getElementById("projectsView").style.display = "none";
+  document.getElementById("createView").style.display = "block";
+  document.getElementById("menu").style.display = "none";
 
-    if(socket){
-        socket.close();
-    }
-
-    socket = new WebSocket(`wss://devploy.onrender.com/ws/deploy/${project}`);
-
-    socket.onmessage = (event) => {
-
-        const data = JSON.parse(event.data);
-
-        const logBox = document.getElementById("logs");
-
-        const div = document.createElement("div");
-        div.className = "log-line";
-        div.innerText = data.msg;
-
-        logBox.appendChild(div);
-
-        // auto scroll
-        logBox.scrollTop = logBox.scrollHeight;
-    };
+  document.getElementById("logBox").style.display = "none";
+  document.getElementById("logs").innerHTML = "";
 }
 
 
-  
-const API =
-"https://devploy.onrender.com";
+/* ================= WEBSOCKET LOGS ================= */
 
-const token =
-localStorage.getItem("token");
+let socket;
 
-if(!token){
+function connectLogs(project) {
 
-location.href="auth.html";
+  if (socket) socket.close();
 
+  document.getElementById("logBox").style.display = "block";
+  document.getElementById("logs").innerHTML = "";
+
+  socket = new WebSocket(`wss://devploy.onrender.com/ws/deploy/${project}`);
+
+  socket.onmessage = (event) => {
+    const data = JSON.parse(event.data);
+
+    const div = document.createElement("div");
+    div.style.padding = "10px";
+    div.style.margin = "6px 0";
+    div.style.borderLeft = "4px solid #2563eb";
+    div.style.background = "#e5e7eb";
+    div.style.fontWeight = "600";
+    div.innerText = data.msg;
+
+    document.getElementById("logs").appendChild(div);
+  };
 }
 
-async function getMe(){
 
-const res =
-await fetch(
-`${API}/me`,
-{
-headers:{
-Authorization:
-`Bearer ${token}`
-}
-}
-);
+/* ================= DEPLOY ================= */
 
-if(!res.ok){
+async function deploy() {
 
-logout();
-return;
+  const projectName = document.getElementById("projectName").value.trim();
+  const repoUrl = document.getElementById("repoUrl").value.trim();
+  const baseDir = document.getElementById("baseDir").value.trim();
 
-}
+  if (!projectName || !repoUrl) {
+    alert("Fill all required fields");
+    return;
+  }
 
-const user =
-await res.json();
+  const btn = document.getElementById("deployBtn");
+  btn.disabled = true;
+  btn.innerText = "Deploying...";
 
-document.getElementById(
-"username"
-).textContent =
-user.username;
+  try {
 
-}
+    connectLogs(projectName);
 
-async function loadProjects(){
+    const res = await fetch("https://devploy.onrender.com/deploy", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${localStorage.getItem("token")}`
+      },
+      body: JSON.stringify({
+        project_name: projectName,
+        repo_url: repoUrl,
+        base_dir: baseDir
+      })
+    });
 
-const res =
-await fetch(
-`${API}/my-projects`,
-{
-headers:{
-Authorization:
-`Bearer ${token}`
-}
-}
-);
+    const data = await res.json();
 
-if(!res.ok){
+    if (!res.ok) throw new Error(data.error || "Deploy failed");
 
-logout();
-return;
+    document.getElementById("result").style.display = "block";
+    document.getElementById("result").innerHTML = `
+      <b>Deployed Successfully 🚀</b><br><br>
+      <a href="${data.url}" target="_blank">${data.url}</a>
+    `;
 
-}
+    loadProjects();
 
-const projects =
-await res.json();
+  } catch (err) {
+    alert(err.message);
+  }
 
-const container =
-document.getElementById(
-"projectsContainer"
-);
-
-if(!projects.length){
-
-container.innerHTML=
-`
-<div class="empty">
-<h3>No Projects Yet</h3>
-<p>Create your first deployment above.</p>
-</div>
-`;
-
-return;
-
+  btn.disabled = false;
+  btn.innerText = "Deploy Project";
 }
 
-container.innerHTML=
-`
-<div class="grid">
-${projects.map(project=>`
-<div class="card">
 
-<h3>${project.name}</h3>
+/* ================= AUTH + PROJECTS ================= */
 
-<div class="meta">
-Status: ${project.status}
-</div>
+const API = "https://devploy.onrender.com";
+const token = localStorage.getItem("token");
 
-<div class="meta">
-${project.url}
-</div>
+if (!token) location.href = "auth.html";
 
-<div class="actions">
+async function getMe() {
+  const res = await fetch(`${API}/me`, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
 
-<a
-class="open"
-href="${project.url}"
-target="_blank">
-Open
-</a>
-
-<button
-class="copy"
-onclick="copyUrl('${project.url}')">
-Copy URL
-</button>
-
-</div>
-
-</div>
-`).join("")}
-</div>
-`;
-
+  const user = await res.json();
+  document.getElementById("username").innerText = user.username;
 }
 
-function copyUrl(url){
+async function loadProjects() {
 
-navigator.clipboard.writeText(url);
+  const res = await fetch(`${API}/my-projects`, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
 
+  const projects = await res.json();
+
+  const container = document.getElementById("projectsContainer");
+
+  if (!projects.length) {
+    container.innerHTML = `
+      <div class="empty">
+        <h3>No Projects Yet</h3>
+        <p>Create your first deployment.</p>
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = `
+    <div class="grid">
+      ${projects.map(p => `
+        <div class="card">
+          <h3>${p.name}</h3>
+          <div class="meta">Status: ${p.status}</div>
+          <div class="meta">${p.url}</div>
+        </div>
+      `).join("")}
+    </div>
+  `;
 }
 
-async function deploy(){
 
-const projectName =
-document
-.getElementById(
-"projectName"
-)
-.value
-.trim();
+/* ================= LOGOUT ================= */
 
-const repoUrl =
-document
-.getElementById(
-"repoUrl"
-)
-.value
-.trim();
-const baseDir =
-document
-.getElementById(
-"baseDir"
-)
-.value
-.trim();
-
-  
-if(!projectName){
-
-alert(
-"Enter project name"
-);
-
-return;
+function logout() {
+  localStorage.removeItem("token");
+  location.href = "auth.html";
 }
 
-if(!repoUrl){
 
-alert(
-"Enter repository URL"
-);
-
-return;
-}
-
-if(
-!repoUrl.includes(
-"github.com"
-)
-){
-
-alert(
-"Enter a valid GitHub URL"
-);
-
-return;
-}
-
-const btn =
-document.getElementById(
-"deployBtn"
-);
-
-btn.disabled=true;
-btn.textContent=
-"Deploying...";
-
-try{
-
-const res =
-await fetch(
-`${API}/deploy`,
-{
-method:"POST",
-
-headers:{
-"Content-Type":"application/json",
-Authorization:`Bearer ${token}`
-},
-
-body:JSON.stringify({
-project_name:projectName,
-repo_url:repoUrl,
-base_dir:baseDir
-})
-
-}
-);
-
-
-const data =
-await res.json();
-connectLogs(projectName)
-if(!res.ok){
-
-throw new Error(
-data.detail ||
-"Deploy failed"
-);
-
-}
-
-const result =
-document.getElementById(
-"result"
-);
-
-result.style.display=
-"block";
-
-result.innerHTML=
-`
-<b>Deployment Successful</b>
-<br><br>
-<a href="${data.url}" target="_blank">
-${data.url}
-</a>
-`;
-
-loadProjects();
-
-}catch(err){
-
-alert(
-err.message
-);
-
-}
-
-btn.disabled=false;
-btn.textContent=
-"Deploy Project";
-
-}
-
-document
-.getElementById(
-"deployBtn"
-)
-.addEventListener(
-"click",
-deploy
-);
-
-function logout(){
-
-localStorage.removeItem(
-"token"
-);
-
-location.href=
-"auth.html";
-
-}
+/* INIT */
 
 getMe();
 loadProjects();
 
-</script></body>
+</script>
+
+</body>
+
+
   </html>
