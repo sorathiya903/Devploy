@@ -351,21 +351,66 @@ def me(
 
 
 
+@app.get("/debug/files")
+def debug_files():
+
+    def scan_dir(path):
+        result = {}
+
+        try:
+            for item in os.listdir(path):
+                full_path = os.path.join(path, item)
+
+                if os.path.isdir(full_path):
+                    result[item] = scan_dir(full_path)
+                else:
+                    result[item] = "file"
+
+        except Exception as e:
+            return {"error": str(e)}
+
+        return result
+
+
+    return {
+        "projects_dir": PROJECTS_DIR,
+        "structure": scan_dir(PROJECTS_DIR)
+    }
+
 @app.post("/deploy")
 def deploy(data: DeployRequest, authorization: str = Header(None)):
 
     username = current_user(authorization)
 
+    project_name = data.project_name.strip().lower().replace(" ", "-")
+
+    # ✅ CREATE PROJECT ENTRY IN MONGO
+    projects.update_one(
+        {"name": project_name},
+        {
+            "$setOnInsert": {
+                "name": project_name,
+                "owner": username,
+                "repo_url": data.repo_url,
+                "status": "queued",
+                "url": f"https://{project_name}.devploy.run.place",
+                "logs": [],
+                "created_at": datetime.utcnow()
+            }
+        },
+        upsert=True
+    )
+
     threading.Thread(
         target=deploy_worker,
-        args=(data.project_name, data.repo_url, data.base_dir, username)
+        args=(project_name, data.repo_url, data.base_dir, username)
     ).start()
 
     return {
-    "success": True,
-    "message": "Deployment started",
-    "project": data.project_name,
-    "ws": f"wss://devploy.onrender.com/ws/deploy/{data.project_name}"
+        "success": True,
+        "message": "Deployment started",
+        "project": project_name,
+        "ws": f"wss://devploy.onrender.com/ws/deploy/{project_name}"
     }
 
 
