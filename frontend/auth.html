@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Devploy Auth</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
+
+<script>
+
+if(
+  location.hostname === "localhost" ||
+
+  location.hostname.includes("127.0.0.1") ||
+
+  location.hostname.includes("netlify") ||
+
+  localStorage.getItem("debug") === "true"
+){
+
+  eruda.init();
+
+}
+
+</script>
+<style>
+body{
+font-family:sans-serif;
+display:flex;
+justify-content:center;
+align-items:center;
+height:100vh;
+background:#111827;
+color:white;
+}
+
+.box{
+width:350px;
+padding:20px;
+background:#1f2937;
+border-radius:12px;
+}
+
+input{
+width:100%;
+padding:10px;
+margin:6px 0;
+box-sizing:border-box;
+}
+
+button{
+width:100%;
+padding:10px;
+cursor:pointer;
+}
+
+.tabs{
+display:flex;
+gap:10px;
+margin-bottom:15px;
+}
+</style>
+</head>
+<body>
+
+<div class="box">
+
+<div class="tabs">
+<button onclick="showLogin()">Login</button>
+<button onclick="showRegister()">Register</button>
+</div>
+
+<div id="login">
+
+<input id="luser" placeholder="Username">
+<input id="lpass" type="password" placeholder="Password">
+
+<button onclick="login()">
+Login
+</button>
+
+</div>
+
+<div id="register" style="display:none">
+
+<input id="ruser" placeholder="Username">
+<input id="rpass" type="password" placeholder="Password">
+
+<button onclick="register()">
+Register
+</button>
+
+</div>
+
+</div>
+
+<script>
+
+const API =
+"https://devploy.onrender.com";
+
+function showLogin(){
+login.style.display="block";
+register.style.display="none";
+}
+
+function showRegister(){
+login.style.display="none";
+register.style.display="block";
+}
+
+async function register(){
+
+const user =
+document.getElementById("ruser").value;
+
+const pass =
+document.getElementById("rpass").value;
+
+const res = await fetch(
+`${API}/register?username=${encodeURIComponent(user)}&password=${encodeURIComponent(pass)}`,
+{
+method:"POST"
+}
+);
+
+const data = await res.json();
+
+if(data.success){
+
+localStorage.setItem(
+"token",
+data.token
+);
+
+localStorage.setItem(
+"username",
+data.username
+);
+
+location.href="dashboard.html";
+}
+}
+
+async function login(){
+
+const user =
+document.getElementById("luser").value;
+
+const pass =
+document.getElementById("lpass").value;
+
+const res = await fetch(
+`${API}/login?username=${encodeURIComponent(user)}&password=${encodeURIComponent(pass)}`,
+{
+method:"POST"
+}
+);
+
+const data = await res.json();
+
+if(data.success){
+
+localStorage.setItem(
+"token",
+data.token
+);
+
+localStorage.setItem(
+"username",
+data.username
+);
+
+location.href="dashboard.html";
+}
+}
+
+</script>
+
+</body>
+</html>
