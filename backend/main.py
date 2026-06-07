@@ -11,7 +11,7 @@ from argon2.exceptions import VerifyMismatchError
 
 from datetime import datetime, timedelta
 from pydantic import BaseModel
-
+import tempfile
 import subprocess
 import shutil
 import traceback
@@ -228,6 +228,7 @@ def me(
 # DEPLOY
 # ==========================================
 
+
 @app.post("/deploy")
 def deploy(
     data: DeployRequest,
@@ -247,13 +248,20 @@ def deploy(
         project_name
     )
 
+    temp_clone = os.path.join(
+        "/tmp",
+        f"clone_{project_name}"
+    )
+
     try:
 
-        # Remove old deployment
+        if os.path.exists(temp_clone):
+            shutil.rmtree(temp_clone)
+
         if os.path.exists(project_path):
             shutil.rmtree(project_path)
 
-        # Clone repository
+        # Clone repo to temp folder
         result = subprocess.run(
             [
                 "git",
@@ -261,7 +269,7 @@ def deploy(
                 "--depth",
                 "1",
                 repo_url,
-                project_path
+                temp_clone
             ],
             capture_output=True,
             text=True
@@ -272,26 +280,24 @@ def deploy(
                 result.stderr
             )
 
-        # Determine actual website directory
-        deploy_path = project_path
+        source_folder = temp_clone
 
         if base_dir:
 
-            deploy_path = os.path.join(
-                project_path,
+            source_folder = os.path.join(
+                temp_clone,
                 base_dir
             )
 
             if not os.path.isdir(
-                deploy_path
+                source_folder
             ):
                 raise Exception(
                     f"Directory '{base_dir}' not found"
                 )
 
-        # Check index.html exists
         index_file = os.path.join(
-            deploy_path,
+            source_folder,
             "index.html"
         )
 
@@ -299,20 +305,24 @@ def deploy(
             index_file
         ):
             raise Exception(
-                f"index.html not found in '{base_dir or '/'}'"
+                "index.html not found"
             )
+
+        # Copy selected folder directly
+        shutil.copytree(
+            source_folder,
+            project_path
+        )
 
         url = (
             f"https://{project_name}.devploy.run.place"
         )
 
-        # Remove previous DB entry
         projects.delete_many({
             "owner": username,
             "name": project_name
         })
 
-        # Save project
         projects.insert_one({
             "owner": username,
             "name": project_name,
@@ -335,6 +345,17 @@ def deploy(
             "error": str(e),
             "trace": traceback.format_exc()
         }
+
+    finally:
+
+        if os.path.exists(
+            temp_clone
+        ):
+            shutil.rmtree(
+                temp_clone
+            )
+            
+            
 # ==========================================
 # DEBUG
 # ==========================================
