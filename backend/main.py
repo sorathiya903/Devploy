@@ -4,9 +4,13 @@ import os
 import subprocess
 import shutil
 import traceback
+from auth import router as auth_router
+from fastapi.middleware.cors import CORSMiddleware
+
 
 app = FastAPI()
-from fastapi.middleware.cors import CORSMiddleware
+
+app.include_router(auth_router)
 
 app.add_middleware(
     CORSMiddleware,
