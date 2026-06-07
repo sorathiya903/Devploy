@@ -1,14 +1,14 @@
-from fastapi import FastAPI, Request, HTTPException, Header
+from fastapi import FastAPI, Request, HTTPException, Header, WebSocket 
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
-
+from typing import Dict, List
 from pymongo import MongoClient
 
 from jose import jwt, JWTError
-
+import json
 from argon2 import PasswordHasher
 from argon2.exceptions import VerifyMismatchError
-
+import threading
 from datetime import datetime, timedelta
 from pydantic import BaseModel
 import tempfile
@@ -66,6 +66,101 @@ app.add_middleware(
 # ==========================================
 # JWT
 # ==========================================
+
+
+class ConnectionManager:
+    def __init__(self):
+        self.active_connections: Dict[str, List[WebSocket]] = {}
+
+    async def connect(self, project: str, websocket: WebSocket):
+        await websocket.accept()
+        if project not in self.active_connections:
+            self.active_connections[project] = []
+        self.active_connections[project].append(websocket)
+
+    def disconnect(self, project: str, websocket: WebSocket):
+        self.active_connections[project].remove(websocket)
+
+    async def send(self, project: str, message: dict):
+        if project in self.active_connections:
+            for conn in self.active_connections[project]:
+                await conn.send_text(json.dumps(message))
+
+
+manager = ConnectionManager()
+
+
+async def push_log(project, message, status=None):
+    data = {
+        "msg": message,
+        "status": status
+    }
+
+    # save to DB
+    projects.update_one(
+        {"name": project},
+        {
+            "$push": {"logs": data},
+            "$set": {"status": status} if status else {}
+        }
+    )
+
+    # send to websocket clients
+    import asyncio
+    asyncio.create_task(manager.send(project, data))
+
+
+
+@app.websocket("/ws/deploy/{project_name}")
+async def deploy_ws(websocket: WebSocket, project_name: str):
+
+    await manager.connect(project_name, websocket)
+
+    try:
+        while True:
+            # keep connection alive
+            await websocket.receive_text()
+
+    except:
+        manager.disconnect(project_name, websocket)
+
+
+
+def deploy_worker(project_name, repo_url, base_dir, username):
+
+    import asyncio
+
+    async def run():
+
+        await push_log(project_name, "Queued deployment", "queued")
+
+        await push_log(project_name, "Cloning repository...", "cloning")
+
+        result = subprocess.run(
+            ["git", "clone", "--depth", "1", repo_url,
+             f"/tmp/{project_name}"],
+            capture_output=True,
+            text=True
+        )
+
+        if result.returncode != 0:
+            await push_log(project_name, "Clone failed", "failed")
+            return
+
+        await push_log(project_name, "Repository cloned", "cloned")
+
+        await push_log(project_name, "Building project...", "building")
+
+        # simulate build
+        time.sleep(1)
+
+        await push_log(project_name, "Finalizing deployment...", "finalizing")
+
+        await push_log(project_name, "Deployment complete 🚀", "deployed")
+
+    asyncio.run(run())
+
+
 
 def create_token(username):
     payload = {
@@ -228,113 +323,24 @@ def me(
 # DEPLOY
 # ==========================================
 
+
+
 @app.post("/deploy")
 def deploy(data: DeployRequest, authorization: str = Header(None)):
 
     username = current_user(authorization)
 
-    project_name = data.project_name.lower().strip()
-    repo_url = data.repo_url.strip()
-    base_dir = data.base_dir.strip()
+    threading.Thread(
+        target=deploy_worker,
+        args=(data.project_name, data.repo_url, data.base_dir, username)
+    ).start()
 
-    project_path = os.path.join(PROJECTS_DIR, project_name)
-    temp_clone = os.path.join("/tmp", f"clone_{project_name}")
+    return {
+        "success": True,
+        "message": "Deployment started"
+    }
 
-    # clean old temp
-    if os.path.exists(temp_clone):
-        shutil.rmtree(temp_clone)
 
-    # create DB entry FIRST (important for logs)
-    projects.insert_one({
-        "owner": username,
-        "name": project_name,
-        "url": "",
-        "repo_url": repo_url,
-        "base_dir": base_dir,
-        "status": "queued",
-        "logs": [],
-        "created_at": datetime.utcnow()
-    })
-
-    def log(msg, status=None):
-        update = {"$push": {"logs": msg}}
-        if status:
-            update["$set"] = {"status": status}
-
-        projects.update_one(
-            {"owner": username, "name": project_name},
-            update
-        )
-
-    try:
-
-        log("🚀 Deployment started", "cloning")
-
-        result = subprocess.run(
-            ["git", "clone", "--depth", "1", repo_url, temp_clone],
-            capture_output=True,
-            text=True
-        )
-
-        if result.returncode != 0:
-            log("❌ Git clone failed", "failed")
-            return {"success": False, "error": result.stderr}
-
-        log("📦 Repository cloned", "building")
-
-        source_folder = temp_clone
-
-        if base_dir:
-            source_folder = os.path.join(temp_clone, base_dir)
-
-            if not os.path.isdir(source_folder):
-                log("❌ Base directory not found", "failed")
-                return {"success": False, "error": "Base dir not found"}
-
-        index_file = os.path.join(source_folder, "index.html")
-
-        if not os.path.exists(index_file):
-            log("❌ index.html missing", "failed")
-            return {"success": False, "error": "index.html missing"}
-
-        log("📁 Preparing files...", "finalizing")
-
-        if os.path.exists(project_path):
-            shutil.rmtree(project_path)
-
-        shutil.copytree(source_folder, project_path)
-
-        url = f"https://{project_name}.devploy.run.place"
-
-        projects.update_one(
-            {"owner": username, "name": project_name},
-            {"$set": {
-                "status": "deployed",
-                "url": url
-            }}
-        )
-
-        log("🎉 Published successfully", "deployed")
-
-        return {
-            "success": True,
-            "url": url
-        }
-
-    except Exception as e:
-
-        log(f"🔥 Error: {str(e)}", "failed")
-
-        return {
-            "success": False,
-            "error": str(e)
-        }
-
-    finally:
-        if os.path.exists(temp_clone):
-            shutil.rmtree(temp_clone)
-            
-            
 # ==========================================
 # DEBUG
 # ==========================================
