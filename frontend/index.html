@@ -1,284 +1,708 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Devploy</title>
-<script src="https://cdn.jsdelivr.net/npm/eruda"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Devploy — Deploy Websites in Seconds</title>
 
-<script>
-
-if(
-  location.hostname === "localhost" ||
-
-  location.hostname.includes("127.0.0.1") ||
-
-  location.hostname.includes("netlify") ||
-
-  localStorage.getItem("debug") === "true"
-){
-
-  eruda.init();
-
+<style>
+:root{
+--primary:#2563EB;
+--primary-light:#60A5FA;
+--dark:#0f172a;
+--gray:#64748b;
+--border:rgba(37,99,235,.12);
+--glass:rgba(255,255,255,.75);
 }
 
-</script>
-  <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-      font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
-    }
- .modal {
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,0.7);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
+*{
+margin:0;
+padding:0;
+box-sizing:border-box;
+}
 
-    .box {
-      width: 320px;
-      background: #111a2e;
-      padding: 20px;
-      border-radius: 12px;
-    }
+html{
+scroll-behavior:smooth;
+}
 
-    .tabs {
-      display: flex;
-      margin-bottom: 10px;
-    }
+body{
+font-family:Inter,system-ui,sans-serif;
+background:#fff;
+color:var(--dark);
+overflow-x:hidden;
+}
 
-    .tabs button {
-      flex: 1;
-      background: #1f2937;
-      margin: 2px;
-    }
+.container{
+width:min(1200px,92%);
+margin:auto;
+}
 
-    .active {
-      background: #4f46e5 !important;
-    }
+section{
+padding:110px 0;
+}
 
-    .small {
-      font-size: 12px;
-      text-align: center;
-      margin-top: 10px;
-      cursor: pointer;
-      color: #aaa;
-    }
-    body {
-      background: radial-gradient(circle at top, #0f172a, #020617);
-      color: white;
-      height: 100vh;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-    }
+.gradient-bg{
+position:fixed;
+inset:0;
+pointer-events:none;
+z-index:-1;
+background:
+radial-gradient(circle at 20% 20%, rgba(37,99,235,.10), transparent 30%),
+radial-gradient(circle at 80% 10%, rgba(96,165,250,.12), transparent 35%),
+radial-gradient(circle at 50% 80%, rgba(37,99,235,.08), transparent 40%);
+}
 
-    .container {
-      width: 90%;
-      max-width: 500px;
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      border-radius: 16px;
-      padding: 25px;
-      backdrop-filter: blur(10px);
-      box-shadow: 0 10px 40px rgba(0,0,0,0.5);
-    }
+.glass{
+background:var(--glass);
+backdrop-filter:blur(18px);
+border:1px solid rgba(255,255,255,.4);
+box-shadow:
+0 10px 30px rgba(37,99,235,.06),
+0 20px 60px rgba(37,99,235,.10);
+}
 
-    h1 {
-      text-align: center;
-      margin-bottom: 20px;
-      font-size: 28px;
-      background: linear-gradient(90deg, #60a5fa, #a78bfa);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-    }
+.navbar{
+position:fixed;
+top:0;
+width:100%;
+z-index:1000;
+backdrop-filter:blur(20px);
+background:rgba(255,255,255,.75);
+border-bottom:1px solid #e2e8f0;
+}
 
-    input {
-      width: 100%;
-      padding: 12px 14px;
-      margin: 10px 0;
-      border-radius: 10px;
-      border: 1px solid rgba(255,255,255,0.1);
-      background: rgba(255,255,255,0.05);
-      color: white;
-      outline: none;
-      transition: 0.2s;
-    }
+.nav-inner{
+height:78px;
+display:flex;
+justify-content:space-between;
+align-items:center;
+}
 
-    input:focus {
-      border-color: #60a5fa;
-      box-shadow: 0 0 10px #60a5fa55;
-    }
+.logo{
+display:flex;
+align-items:center;
+gap:12px;
+font-size:1.2rem;
+font-weight:800;
+}
 
-    button {
-      width: 100%;
-      padding: 12px;
-      margin-top: 10px;
-      border: none;
-      border-radius: 10px;
-      background: linear-gradient(90deg, #3b82f6, #8b5cf6);
-      color: white;
-      font-size: 16px;
-      cursor: pointer;
-      transition: 0.2s;
-    }
+.logo-icon{
+width:42px;
+height:42px;
+border-radius:12px;
+background:linear-gradient(135deg,var(--primary),var(--primary-light));
+display:flex;
+align-items:center;
+justify-content:center;
+color:#fff;
+font-weight:700;
+}
 
-    button:hover {
-      transform: translateY(-2px);
-      opacity: 0.9;
-    }
+.nav-actions{
+display:flex;
+gap:12px;
+}
 
-    .result {
-      margin-top: 20px;
-      padding: 12px;
-      border-radius: 10px;
-      background: rgba(255,255,255,0.05);
-      border: 1px solid rgba(255,255,255,0.1);
-      word-break: break-word;
-      min-height: 40px;
-    }
+.btn{
+padding:14px 22px;
+border-radius:14px;
+text-decoration:none;
+font-weight:600;
+transition:.3s;
+display:inline-flex;
+align-items:center;
+justify-content:center;
+}
 
-    .label {
-      font-size: 12px;
-      opacity: 0.7;
-      margin-top: 5px;
-    }
+.btn-primary{
+background:linear-gradient(135deg,var(--primary),var(--primary-light));
+color:#fff;
+box-shadow:0 10px 25px rgba(37,99,235,.25);
+}
 
-    .loading {
-      color: #60a5fa;
-    }
-  </style>
+.btn-primary:hover{
+transform:translateY(-2px);
+}
+
+.btn-secondary{
+border:1px solid #dbeafe;
+color:var(--dark);
+background:#fff;
+}
+
+.hero{
+padding-top:180px;
+}
+
+.hero-grid{
+display:grid;
+grid-template-columns:1fr 1fr;
+gap:80px;
+align-items:center;
+}
+
+.hero h1{
+font-size:clamp(3rem,7vw,5.6rem);
+line-height:1;
+font-weight:900;
+margin-bottom:24px;
+}
+
+.hero p{
+font-size:1.15rem;
+line-height:1.8;
+color:var(--gray);
+margin-bottom:40px;
+max-width:600px;
+}
+
+.hero-actions{
+display:flex;
+gap:14px;
+flex-wrap:wrap;
+}
+
+.dashboard-card{
+padding:28px;
+border-radius:30px;
+position:relative;
+animation:float 6s ease infinite;
+}
+
+.repo{
+background:#eff6ff;
+padding:16px;
+border-radius:16px;
+margin-bottom:16px;
+}
+
+.logs{
+background:#0f172a;
+color:#22c55e;
+padding:18px;
+border-radius:16px;
+font-family:monospace;
+font-size:.9rem;
+margin-bottom:16px;
+}
+
+.success{
+background:#ecfdf5;
+border:1px solid #bbf7d0;
+padding:16px;
+border-radius:16px;
+}
+
+.section-title{
+text-align:center;
+margin-bottom:70px;
+}
+
+.section-title h2{
+font-size:clamp(2rem,4vw,3.5rem);
+margin-bottom:16px;
+}
+
+.section-title p{
+color:var(--gray);
+max-width:650px;
+margin:auto;
+line-height:1.7;
+}
+
+.features-grid{
+display:grid;
+grid-template-columns:repeat(3,1fr);
+gap:24px;
+}
+
+.card{
+padding:32px;
+border-radius:24px;
+transition:.3s;
+}
+
+.card:hover{
+transform:translateY(-8px);
+}
+
+.icon{
+width:60px;
+height:60px;
+border-radius:18px;
+display:flex;
+align-items:center;
+justify-content:center;
+background:#eff6ff;
+font-size:26px;
+margin-bottom:18px;
+}
+
+.card h3{
+margin-bottom:12px;
+}
+
+.card p{
+color:var(--gray);
+line-height:1.8;
+}
+
+.steps{
+display:grid;
+grid-template-columns:repeat(3,1fr);
+gap:40px;
+}
+
+.step{
+text-align:center;
+position:relative;
+}
+
+.step-circle{
+width:70px;
+height:70px;
+border-radius:50%;
+background:linear-gradient(135deg,var(--primary),var(--primary-light));
+color:white;
+display:flex;
+align-items:center;
+justify-content:center;
+margin:auto auto 20px;
+font-weight:700;
+font-size:1.2rem;
+}
+
+.arrow{
+position:absolute;
+right:-40px;
+top:35px;
+font-size:24px;
+color:var(--primary);
+animation:pulse 1.5s infinite;
+}
+
+.preview{
+background:#f8fafc;
+}
+
+.dashboard-preview{
+padding:28px;
+border-radius:30px;
+}
+
+.topbar{
+display:flex;
+justify-content:space-between;
+margin-bottom:24px;
+}
+
+.project-grid{
+display:grid;
+grid-template-columns:repeat(3,1fr);
+gap:20px;
+}
+
+.project{
+background:#fff;
+padding:20px;
+border-radius:18px;
+border:1px solid #e2e8f0;
+}
+
+.status{
+display:inline-block;
+margin-top:10px;
+font-size:.9rem;
+padding:6px 10px;
+border-radius:999px;
+}
+
+.live{
+background:#dcfce7;
+color:#166534;
+}
+
+.deploying{
+background:#fef3c7;
+color:#92400e;
+}
+
+.modal{
+margin-top:24px;
+padding:24px;
+border-radius:20px;
+background:white;
+border:1px solid #e2e8f0;
+}
+
+.modal input{
+width:100%;
+padding:12px;
+margin-bottom:12px;
+border:1px solid #dbeafe;
+border-radius:12px;
+}
+
+.cta{
+text-align:center;
+background:
+linear-gradient(135deg,#2563EB,#60A5FA);
+color:white;
+}
+
+.cta h2{
+font-size:clamp(2.5rem,5vw,4rem);
+margin-bottom:16px;
+}
+
+.cta p{
+margin-bottom:30px;
+opacity:.95;
+}
+
+footer{
+background:#0f172a;
+color:white;
+padding:60px 0;
+}
+
+.footer-grid{
+display:flex;
+justify-content:space-between;
+flex-wrap:wrap;
+gap:30px;
+}
+
+.footer-links{
+display:flex;
+gap:20px;
+flex-wrap:wrap;
+}
+
+.footer-links a{
+color:#cbd5e1;
+text-decoration:none;
+}
+
+.footer-bottom{
+margin-top:30px;
+padding-top:20px;
+border-top:1px solid rgba(255,255,255,.1);
+color:#94a3b8;
+}
+
+.fade{
+opacity:0;
+transform:translateY(30px);
+transition:.8s;
+}
+
+.fade.show{
+opacity:1;
+transform:none;
+}
+
+@keyframes float{
+50%{
+transform:translateY(-10px);
+}
+}
+
+@keyframes pulse{
+50%{
+opacity:.4;
+}
+}
+
+@media(max-width:991px){
+
+.hero-grid,
+.features-grid,
+steps,
+.project-grid{
+grid-template-columns:1fr;
+}
+
+.steps{
+grid-template-columns:1fr;
+}
+
+.arrow{
+display:none;
+}
+
+.hero{
+text-align:center;
+}
+
+.hero p{
+margin:auto auto 35px;
+}
+
+.hero-actions{
+justify-content:center;
+}
+
+.project-grid{
+grid-template-columns:1fr;
+}
+}
+</style>
 </head>
-
 <body>
-<div class="modal" id="authModal">
-  <div class="box">
 
-    <div class="tabs">
-      <button onclick="switchTab('login')" id="loginTab" class="active">Login</button>
-      <button onclick="switchTab('signup')" id="signupTab">Signup</button>
-    </div>
+<div class="gradient-bg"></div>
 
-    <input id="user" placeholder="Username">
-    <input id="pass" type="password" placeholder="Password">
+<nav class="navbar">
+<div class="container nav-inner">
 
-    <button onclick="auth()">Continue</button>
-
-    <div class="small" onclick="skipAuth()">
-      (Dev mode skip)
-    </div>
-
-  </div>
+<div class="logo">
+<div class="logo-icon">D</div>
+Devploy
 </div>
-  <div class="container">
-    <h1>Devploy 🚀</h1>
 
-    <input id="project" placeholder="Project Name (e.g. my-app)" />
-    <input id="repo" placeholder="GitHub Repo URL" />
+<div class="nav-actions">
+<a href="/auth.html" class="btn btn-secondary">Login</a>
+<a href="/dashboard.html" class="btn btn-primary">Dashboard</a>
+</div>
 
-    <button onclick="deploy()">Deploy</button>
+</div>
+</nav>
 
-    <div class="result" id="result">
-      Enter details and click deploy
-    </div>
-  </div>
+<section class="hero">
+<div class="container">
 
-  <script>
-    async function deploy() {
-      const project = document.getElementById("project").value.trim();
-      const repo = document.getElementById("repo").value.trim();
-      const result = document.getElementById("result");
+<div class="hero-grid">
 
-      if (!project || !repo) {
-        result.innerHTML = "⚠️ Please fill all fields";
-        return;
-      }
+<div>
 
-      result.innerHTML = "⏳ Deploying... please wait";
+<h1>Deploy Websites in Seconds.</h1>
 
-      try {
-        const res = await fetch(
-          `https://devploy.onrender.com/deploy?project_name=${project}&repo_url=${encodeURIComponent(repo)}`,
-          {
-            method: "POST"
-          }
-        );
+<p>
+Connect your GitHub repository and launch your website
+with a single click. Devploy automates deployment workflows,
+builds your project, and provides a live URL without managing servers.
+</p>
 
-        const data = await res.json();
+<div class="hero-actions">
+<a href="/auth.html" class="btn btn-primary">Get Started Free</a>
+<a href="/dashboard.html" class="btn btn-secondary">View Dashboard</a>
+</div>
 
-        if (data.url) {
-          result.innerHTML = `
-            ✅ Deployed Successfully<br><br>
-            🔗 <a href="${data.url}" target="_blank" style="color:#60a5fa;">
-              ${data.url}
-            </a>
-          `;
-        } else {
-          result.innerHTML = "❌ Deployment failed";
-        }
+</div>
 
-      } catch (err) {
-        result.innerHTML = "❌ Error connecting to server"+err;
-        console.error(err)
-      }
-      
-    }
-    
-    let mode = "login";
+<div class="dashboard-card glass">
 
-  function switchTab(tab) {
-    mode = tab;
+<div class="repo">
+<strong>GitHub Repository</strong><br>
+github.com/username/project
+</div>
 
-    document.getElementById("loginTab").classList.remove("active");
-    document.getElementById("signupTab").classList.remove("active");
+<div class="logs">
+Cloning repository...<br>
+Installing dependencies...<br>
+Running build command...<br>
+Generating deployment...<br>
+Deployment complete.
+</div>
 
-    document.getElementById(tab + "Tab").classList.add("active");
-  }
+<div class="success">
+<strong>Deployment Successful</strong><br>
+project.devploy.app
+</div>
 
-  function auth() {
-    const user = document.getElementById("user").value;
-    const pass = document.getElementById("pass").value;
+</div>
 
-    if (!user || !pass) {
-      alert("Fill all fields");
-      return;
-    }
+</div>
 
-    if (mode === "signup") {
-      localStorage.setItem("dev_user", user);
-      localStorage.setItem("dev_pass", pass);
-      alert("Account created!");
-    }
+</div>
+</section>
 
-    const savedUser = localStorage.getItem("dev_user");
-    const savedPass = localStorage.getItem("dev_pass");
+<section>
+<div class="container">
 
-    if (user === savedUser && pass === savedPass) {
-      loginSuccess(user);
-    } else {
-      alert("Invalid credentials");
-    }
-  }
+<div class="section-title fade">
+<h2>Everything Needed To Deploy</h2>
+<p>
+A streamlined workflow for developers who want to focus on building instead of infrastructure.
+</p>
+</div>
 
-  function loginSuccess(user) {
-    document.getElementById("authModal").style.display = "none";
-    document.getElementById("app").style.display = "block";
-  }
+<div class="features-grid">
 
-  function skipAuth() {
-    document.getElementById("authModal").style.display = "none";
-    document.getElementById("app").style.display = "block";
-  }
+<div class="card glass fade">
+<div class="icon">🐙</div>
+<h3>GitHub Integration</h3>
+<p>
+Connect repositories directly and trigger deployments from your codebase.
+</p>
+</div>
 
-  // auto login
-  if (localStorage.getItem("dev_user")) {
-    skipAuth();
-      }
-  </script>
+<div class="card glass fade">
+<div class="icon">🚀</div>
+<h3>One Click Deployment</h3>
+<p>
+Deploy projects quickly without configuring servers manually.
+</p>
+</div>
+
+<div class="card glass fade">
+<div class="icon">🛡️</div>
+<h3>Secure Authentication</h3>
+<p>
+Protect accounts using secure authentication and session management.
+</p>
+</div>
+
+</div>
+
+</div>
+</section>
+
+<section>
+<div class="container">
+
+<div class="section-title fade">
+<h2>How It Works</h2>
+<p>From repository to live website in three simple steps.</p>
+</div>
+
+<div class="steps">
+
+<div class="step fade">
+<div class="step-circle">1</div>
+<h3>Connect Repository</h3>
+<p>Select a GitHub repository.</p>
+<div class="arrow">→</div>
+</div>
+
+<div class="step fade">
+<div class="step-circle">2</div>
+<h3>Configure Project</h3>
+<p>Choose build settings and environment variables.</p>
+<div class="arrow">→</div>
+</div>
+
+<div class="step fade">
+<div class="step-circle">3</div>
+<h3>Deploy Instantly</h3>
+<p>Receive a live project URL after deployment.</p>
+</div>
+
+</div>
+
+</div>
+</section>
+
+<section class="preview">
+<div class="container">
+
+<div class="section-title fade">
+<h2>Dashboard Preview</h2>
+<p>
+Manage projects, deployments, and URLs from a unified interface.
+</p>
+</div>
+
+<div class="dashboard-preview glass fade">
+
+<div class="topbar">
+<h3>Projects</h3>
+<button class="btn btn-primary">Create Project</button>
+</div>
+
+<div class="project-grid">
+
+<div class="project">
+<h4>Portfolio Site</h4>
+<div class="status live">Live</div>
+<p>portfolio.devploy.app</p>
+</div>
+
+<div class="project">
+<h4>Company Website</h4>
+<div class="status deploying">Deploying</div>
+<p>building...</p>
+</div>
+
+<div class="project">
+<h4>Documentation</h4>
+<div class="status live">Live</div>
+<p>docs.devploy.app</p>
+</div>
+
+</div>
+
+<div class="modal">
+<h4>Create Project</h4>
+<br>
+<input placeholder="Repository URL">
+<input placeholder="Project Name">
+<input placeholder="Build Command">
+<button class="btn btn-primary">Create Project</button>
+</div>
+
+</div>
+
+</div>
+</section>
+
+<section class="cta">
+<div class="container">
+
+<h2>Start Deploying Today</h2>
+
+<p>
+Build. Deploy. Share.
+</p>
+
+<a href="/dashboard.html" class="btn btn-secondary">
+Get Started
+</a>
+
+</div>
+</section>
+
+<footer>
+
+<div class="container">
+
+<div class="footer-grid">
+
+<div>
+<h3>Devploy</h3>
+<p>Modern deployment platform for GitHub-powered projects.</p>
+</div>
+
+<div class="footer-links">
+
+<a href="/dashboard.html">Dashboard</a>
+
+</div>
+
+</div>
+
+<div class="footer-bottom">
+© Devploy. All rights reserved.
+</div>
+
+</div>
+
+</footer>
+
+<script>
+const observer = new IntersectionObserver(entries=>{
+entries.forEach(entry=>{
+if(entry.isIntersecting){
+entry.target.classList.add('show');
+}
+});
+},{threshold:.15});
+
+document.querySelectorAll('.fade').forEach(el=>{
+observer.observe(el);
+});
+</script>
 
 </body>
-</html>
+  </html>
