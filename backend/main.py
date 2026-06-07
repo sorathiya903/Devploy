@@ -120,6 +120,30 @@ def current_user(authorization):
 # ==========================================
 # AUTH
 # ==========================================
+@app.get("/my-projects")
+def my_projects(
+    authorization: str = Header(None)
+):
+
+    username = current_user(
+        authorization
+    )
+
+    data = list(
+        projects.find(
+            {
+                "owner": username
+            },
+            {
+                "_id": 0
+            }
+        )
+    )
+
+    return data
+
+
+
 
 @app.post("/register")
 def register(
