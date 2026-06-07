@@ -10,6 +10,7 @@ from argon2 import PasswordHasher
 from argon2.exceptions import VerifyMismatchError
 
 from datetime import datetime, timedelta
+from pydantic import BaseModel
 
 import subprocess
 import shutil
@@ -20,6 +21,12 @@ import os
 # ==========================================
 # CONFIG
 # ==========================================
+
+
+class DeployRequest(BaseModel):
+    project_name: str
+    repo_url: str
+    base_dir: str = ""
 
 BASE_DIR = "/opt/render/project/src/backend"
 PROJECTS_DIR = os.path.join(BASE_DIR, "projects")
@@ -199,8 +206,7 @@ def me(
 
 @app.post("/deploy")
 def deploy(
-    project_name: str,
-    repo_url: str,
+    data: DeployRequest,
     authorization: str = Header(None)
 ):
 
@@ -208,7 +214,9 @@ def deploy(
         authorization
     )
 
-    project_name = project_name.lower()
+    project_name = data.project_name.lower().strip()
+    repo_url = data.repo_url.strip()
+    base_dir = data.base_dir.strip()
 
     project_path = os.path.join(
         PROJECTS_DIR,
@@ -245,6 +253,7 @@ def deploy(
             "name": project_name,
             "url": url,
             "repo_url": repo_url,
+            "base_dir": base_dir,
             "status": "deployed",
             "created_at": datetime.utcnow()
         })
@@ -261,33 +270,6 @@ def deploy(
             "error": str(e),
             "trace": traceback.format_exc()
         }
-
-
-# ==========================================
-# USER PROJECTS
-# ==========================================
-
-@app.get("/my-projects")
-def my_projects(
-    authorization: str = Header(None)
-):
-
-    username = current_user(
-        authorization
-    )
-
-    data = list(
-        projects.find(
-            {
-                "owner": username
-            },
-            {
-                "_id": 0
-            }
-        )
-    )
-
-    return data
 
 
 # ==========================================
