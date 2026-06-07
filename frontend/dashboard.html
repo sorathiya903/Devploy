@@ -217,12 +217,30 @@ border-radius:10px;
 cursor:pointer;
 }
 
+    .log-line{
+  background:#f3f4f6;
+  color:#111827;
+  padding:10px;
+  margin:6px 0;
+  border-radius:10px;
+  font-weight:600;
+  border-left:4px solid #2563eb;
+  }
+
 </style></head>
-<body><header><div class="logo">Devploy</div><div class="right">
-<span id="username" class="username">Loading...</span><button class="logout" onclick="logout()">
-Logout
-</button>
-</div></header><div class="container">
+<body><header><div class="logo">Devploy</div>
+  
+  <div class="right">
+  <span id="username" class="username">Loading...</span>
+
+  <button onclick="toggleMenu()">☰</button>
+
+  <div id="menu" style="display:none; position:absolute; right:20px; top:60px; background:white; padding:10px; border-radius:10px; box-shadow:0 5px 20px rgba(0,0,0,.1)">
+    <button onclick="showCreate()">New Project</button>
+    <button onclick="logout()">Logout</button>
+  </div>
+  </div>
+  </header><div class="container">
   
   
   <div class="deploy-box"><h3>Create New Project</h3><input
@@ -253,11 +271,66 @@ Deploy Project
 <div
 id="result"
 class="result">
-</div></div><h2 class="section-title">
+</div></div>
+    
+    <div id="logBox" style="display:none; margin-top:20px; padding:15px; background:#f3f4f6; border-radius:12px;">
+  <h3>Deployment Logs</h3>
+  <div id="logs"></div>
+    </div>
+
+    
+    <h2 class="section-title">
 Your Projects
 </h2><div id="projectsContainer">
-</div></div><script>
+</div></div>
+  
+  
+  <script>
 
+function showCreate(){
+  document.getElementById("projectsContainer").style.display="none";
+  document.querySelector(".deploy-box").style.display="block";
+}
+
+function showProjects(){
+  document.getElementById("projectsContainer").style.display="block";
+  document.querySelector(".deploy-box").style.display="none";
+}
+
+function toggleMenu(){
+  const m = document.getElementById("menu");
+  m.style.display = m.style.display==="none" ? "block" : "none";
+}
+
+    let socket;
+
+function connectLogs(project){
+
+    if(socket){
+        socket.close();
+    }
+
+    socket = new WebSocket(`wss://devploy.onrender.com/ws/deploy/${project}`);
+
+    socket.onmessage = (event) => {
+
+        const data = JSON.parse(event.data);
+
+        const logBox = document.getElementById("logs");
+
+        const div = document.createElement("div");
+        div.className = "log-line";
+        div.innerText = data.msg;
+
+        logBox.appendChild(div);
+
+        // auto scroll
+        logBox.scrollTop = logBox.scrollHeight;
+    };
+}
+
+
+  
 const API =
 "https://devploy.onrender.com";
 
@@ -479,7 +552,7 @@ base_dir:baseDir
 
 const data =
 await res.json();
-
+connectLogs(projectName)
 if(!res.ok){
 
 throw new Error(
