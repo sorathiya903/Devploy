@@ -232,7 +232,18 @@ placeholder="Project Name">
 <input
 id="repoUrl"
 placeholder="GitHub Repository URL">
-
+<div class="form-group">
+  <label>Base Directory</label>
+  <input
+    type="text"
+    id="baseDir"
+    placeholder="frontend"
+  >
+  <small>
+    Optional. Leave empty if index.html is in the repository root.
+    Example: frontend, website, apps/web
+  </small>
+</div>
 <button
 id="deployBtn"
 class="deploy-btn">
