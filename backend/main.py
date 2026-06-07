@@ -80,30 +80,44 @@ class ConnectionManager:
 
     async def connect(self, project: str, websocket: WebSocket):
         await websocket.accept()
+
         if project not in self.active_connections:
             self.active_connections[project] = []
+
         self.active_connections[project].append(websocket)
 
     def disconnect(self, project: str, websocket: WebSocket):
-        self.active_connections[project].remove(websocket)
+        if project in self.active_connections:
+            if websocket in self.active_connections[project]:
+                self.active_connections[project].remove(websocket)
 
     async def send(self, project: str, message: dict):
-        if project in self.active_connections:
-            for conn in self.active_connections[project]:
+        if project not in self.active_connections:
+            return
+
+        dead = []
+
+        for conn in self.active_connections[project]:
+            try:
                 await conn.send_text(json.dumps(message))
+            except Exception:
+                dead.append(conn)
+
+        # remove dead sockets
+        for d in dead:
+            self.disconnect(project, d)
 
 
 manager = ConnectionManager()
 
 
 async def push_log(project, message, status=None):
-
     data = {
         "msg": message,
-        "status": status,
-        "time": datetime.utcnow().isoformat()
+        "status": status
     }
 
+    # DB update
     projects.update_one(
         {"name": project},
         {
@@ -112,7 +126,8 @@ async def push_log(project, message, status=None):
         }
     )
 
-    safe_broadcast(project, data)
+    # safe websocket broadcast
+    await manager.send(project, data)
 
 @app.websocket("/ws/deploy/{project_name}")
 async def deploy_ws(websocket: WebSocket, project_name: str):
@@ -127,41 +142,40 @@ async def deploy_ws(websocket: WebSocket, project_name: str):
 
 def deploy_worker(project_name, repo_url, base_dir, username):
 
-    import asyncio
-
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
+    import time
+    import subprocess
 
     async def run():
+        try:
+            await push_log(project_name, "Queued deployment", "queued")
 
-        await push_log(project_name, "Queued deployment", "queued")
+            await push_log(project_name, "Cloning repository...", "cloning")
 
-        await push_log(project_name, "Cloning repository...", "cloning")
+            result = subprocess.run(
+                ["git", "clone", "--depth", "1", repo_url, f"/tmp/{project_name}"],
+                capture_output=True,
+                text=True
+            )
 
-        result = subprocess.run(
-            ["git", "clone", "--depth", "1", repo_url,
-             f"/tmp/{project_name}"],
-            capture_output=True,
-            text=True
-        )
+            if result.returncode != 0:
+                await push_log(project_name, "Clone failed", "failed")
+                return
 
-        if result.returncode != 0:
-            await push_log(project_name, "Clone failed ❌", "failed")
-            return
+            await push_log(project_name, "Repository cloned", "cloned")
 
-        await push_log(project_name, "Repository cloned", "cloned")
+            await push_log(project_name, "Building project...", "building")
+            time.sleep(2)
 
-        await push_log(project_name, "Building project...", "building")
+            await push_log(project_name, "Finalizing deployment...", "finalizing")
+            time.sleep(1)
 
-        time.sleep(1)
+            await push_log(project_name, "Deployment complete 🚀", "deployed")
 
-        await push_log(project_name, "Finalizing deployment...", "finalizing")
+        except Exception as e:
+            await push_log(project_name, f"Error: {str(e)}", "failed")
 
-        project_url = f"https://{project_name}.devploy.run.place"
-
-        await push_log(project_name, f"Live at {project_url}", "deployed")
-
-    loop.run_until_complete(run())
+    import asyncio
+    asyncio.run(run())
 
 
 def create_token(username):
