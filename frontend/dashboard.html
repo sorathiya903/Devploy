@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Dashboard</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
+
+<script>
+
+if(
+  location.hostname === "localhost" ||
+
+  location.hostname.includes("127.0.0.1") ||
+
+  location.hostname.includes("netlify") ||
+
+  localStorage.getItem("debug") === "true"
+){
+
+  eruda.init();
+
+}
+
+</script>
+<style>
+body{
+font-family:sans-serif;
+padding:20px;
+background:#111827;
+color:white;
+}
+
+.card{
+background:#1f2937;
+padding:20px;
+border-radius:12px;
+margin-top:10px;
+}
+</style>
+</head>
+<body>
+
+<h1>Devploy Dashboard</h1>
+
+<div id="username"></div>
+
+<button onclick="logout()">
+Logout
+</button>
+
+<div class="card">
+<h3>Your Projects</h3>
+<div id="projects"></div>
+</div>
+
+<script>
+
+const token =
+localStorage.getItem("token");
+
+const username =
+localStorage.getItem("username");
+
+if(!token){
+location.href="login.html";
+}
+
+document.getElementById(
+"username"
+).innerText =
+"Logged in as: " + username;
+
+async function loadProjects(){
+
+const res = await fetch(
+`https://devploy.onrender.com/projects/${username}`
+);
+
+const data = await res.json();
+
+document.getElementById(
+"projects"
+).innerHTML =
+JSON.stringify(
+data.projects || [],
+null,
+2
+);
+}
+
+function logout(){
+
+localStorage.clear();
+
+location.href =
+"login.html";
+}
+
+loadProjects();
+
+</script>
+
+</body>
+</html>
