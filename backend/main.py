@@ -1,5 +1,5 @@
 from fastapi import FastAPI, Request, HTTPException, Header, WebSocket 
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 from typing import Dict, List
 from pymongo import MongoClient
