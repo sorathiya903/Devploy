@@ -28,6 +28,7 @@ class DeployRequest(BaseModel):
     project_name: str
     repo_url: str
     base_dir: str = ""
+    auto_deploy: bool = False
 
 class CommitDeployRequest(BaseModel):
     project_name: str
@@ -763,47 +764,182 @@ def debug_files():
     }
 
 @app.post("/deploy")
-def deploy(data: DeployRequest, authorization: str = Header(None)):
+def deploy(
+    data: DeployRequest,
+    authorization: str = Header(None)
+):
 
     username = current_user(authorization)
 
-    project_name = data.project_name.strip().lower().replace(" ", "-")
+    project_name = (
+        data.project_name
+        .strip()
+        .lower()
+        .replace(" ", "-")
+    )
 
-    # CREATE PROJECT ENTRY IN MONGO
     projects.update_one(
         {"name": project_name},
         {
-            "$setOnInsert": {
+            "$set": {
                 "name": project_name,
                 "owner": username,
                 "repo_url": data.repo_url,
                 "base_dir": data.base_dir,
+                "auto_deploy": data.auto_deploy,
                 "status": "queued",
-                "deployed_sha": "",
-                "url": f"https://{project_name}.devploy.run.place",
+                "url": f"https://{project_name}.devploy.run.place"
+            },
+            "$setOnInsert": {
                 "logs": [],
+                "deployed_sha": "",
                 "created_at": datetime.utcnow()
             }
         },
         upsert=True
     )
 
+    # --------------------------
+    # AUTO CREATE GITHUB WEBHOOK
+    # --------------------------
+
+    if data.auto_deploy:
+
+        user = users.find_one(
+            {"username": username}
+        )
+
+        github_token = user.get(
+            "github_token"
+        )
+
+        if github_token:
+
+            owner, repo = github_repo_parts(
+                data.repo_url
+            )
+
+            headers = {
+                "Authorization":
+                f"Bearer {github_token}",
+                "Accept":
+                "application/vnd.github+json"
+            }
+
+            try:
+
+                hooks_res = requests.get(
+                    f"https://api.github.com/repos/{owner}/{repo}/hooks",
+                    headers=headers
+                )
+
+                hooks = hooks_res.json()
+
+                exists = False
+
+                for hook in hooks:
+
+                    config = hook.get(
+                        "config",
+                        {}
+                    )
+
+                    if config.get("url") == \
+                    "https://devploy.onrender.com/github/webhook":
+
+                        exists = True
+                        break
+
+                if not exists:
+
+                    requests.post(
+                        f"https://api.github.com/repos/{owner}/{repo}/hooks",
+                        headers=headers,
+                        json={
+                            "name": "web",
+                            "active": True,
+                            "events": ["push"],
+                            "config": {
+                                "url":
+                                "https://devploy.onrender.com/github/webhook",
+                                "content_type":
+                                "json"
+                            }
+                        }
+                    )
+
+            except Exception as e:
+                print(
+                    "Webhook creation failed:",
+                    e
+                )
+
     threading.Thread(
         target=deploy_worker,
-        args=(project_name, data.repo_url, data.base_dir, username)
+        args=(
+            project_name,
+            data.repo_url,
+            data.base_dir,
+            username
+        )
     ).start()
 
     return {
         "success": True,
-        "message": "Deployment started",
-        "project": project_name,
-        "ws": f"wss://devploy.onrender.com/ws/deploy/{project_name}"
-    }
+        "project": project_name
+                    }
 
 
 # ==========================================
 # DEBUG
 # ==========================================
+
+
+
+@app.post("/github/webhook")
+async def github_webhook(
+    request: Request
+):
+
+    payload = await request.json()
+
+    repo_url = payload.get(
+        "repository",
+        {}
+    ).get(
+        "clone_url"
+    )
+
+    sha = payload.get("after")
+
+    if not repo_url or not sha:
+        return {"ok": True}
+
+    project = projects.find_one(
+        {
+            "repo_url": repo_url,
+            "auto_deploy": True
+        }
+    )
+
+    if not project:
+        return {"ok": True}
+
+    threading.Thread(
+        target=deploy_commit_worker,
+        args=(
+            project["name"],
+            project["repo_url"],
+            project.get("base_dir", ""),
+            sha
+        )
+    ).start()
+
+    return {
+        "success": True
+    }
+
+
 
 @app.get("/files")
 def files():
