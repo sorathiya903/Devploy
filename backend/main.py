@@ -240,6 +240,7 @@ def project_logs(
 
 
 
+
 @app.get("/project-commits/{project_name}")
 def project_commits(
     project_name: str,
@@ -254,34 +255,57 @@ def project_commits(
     })
 
     if not project:
-        raise HTTPException(404, "Project not found")
+        raise HTTPException(
+            status_code=404,
+            detail="Project not found"
+        )
 
     owner, repo = github_repo_parts(
         project["repo_url"]
     )
 
-    res = requests.get(
-        f"https://api.github.com/repos/{owner}/{repo}/commits"
-    )
+    github_token = os.getenv("GITHUB_TOKEN")
 
-    data = res.json()
+    headers = {
+        "Accept": "application/vnd.github+json"
+    }
 
-    if not isinstance(data, list):
+    if github_token:
+        headers["Authorization"] = f"Bearer {github_token}"
+
+    try:
+
+        res = requests.get(
+            f"https://api.github.com/repos/{owner}/{repo}/commits?per_page=20",
+            headers=headers,
+            timeout=15
+        )
+
+        data = res.json()
+
+        if not isinstance(data, list):
+            return {
+                "github_error": data
+            }
+
+        commits = []
+
+        for c in data:
+
+            commits.append({
+                "sha": c.get("sha", ""),
+                "message": c["commit"]["message"],
+                "author": c["commit"]["author"]["name"],
+                "date": c["commit"]["author"]["date"]
+            })
+
+        return commits
+
+    except Exception as e:
+
         return {
-            "github_error": data
-        }
-
-    commits = []
-
-    for c in data[:20]:
-        commits.append({
-            "sha": c["sha"],
-            "message": c["commit"]["message"],
-            "author": c["commit"]["author"]["name"],
-            "date": c["commit"]["author"]["date"]
-        })
-
-    return commits
+            "error": str(e)
+    }
 
 
 def deploy_commit_worker(
