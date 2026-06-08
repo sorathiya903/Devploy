@@ -38,8 +38,14 @@ PROJECTS_DIR = os.path.join(BASE_DIR, "projects")
 
 os.makedirs(PROJECTS_DIR, exist_ok=True)
 
+
+
 MONGO_URI = os.getenv("MONGO_URI")
 JWT_SECRET = os.getenv("JWT_SECRET", "change-this-secret")
+GITHUB_CLIENT_ID = os.getenv("GITHUB_CLIENT_ID")
+GITHUB_CLIENT_SECRET = os.getenv("GITHUB_CLIENT_SECRET")
+
+
 
 ALGORITHM = "HS256"
 
@@ -763,7 +769,7 @@ def deploy(data: DeployRequest, authorization: str = Header(None)):
 
     project_name = data.project_name.strip().lower().replace(" ", "-")
 
-    # ✅ CREATE PROJECT ENTRY IN MONGO
+    # CREATE PROJECT ENTRY IN MONGO
     projects.update_one(
         {"name": project_name},
         {
@@ -871,6 +877,105 @@ def root(request: Request):
 # ==========================================
 # STATIC FILES
 # ==========================================
+
+
+@app.get("/github/callback")
+def github_callback(
+    code: str,
+    state: str
+):
+
+    # state contains your JWT
+    payload = verify_token(state)
+
+    if not payload:
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid state token"
+        )
+
+    username = payload["username"]
+
+    # Exchange GitHub code for access token
+    res = requests.post(
+        "https://github.com/login/oauth/access_token",
+        headers={
+            "Accept": "application/json"
+        },
+        data={
+            "client_id": GITHUB_CLIENT_ID,
+            "client_secret": GITHUB_CLIENT_SECRET,
+            "code": code
+        }
+    )
+
+    github_data = res.json()
+
+    access_token = github_data.get(
+        "access_token"
+    )
+
+    if not access_token:
+        raise HTTPException(
+            status_code=400,
+            detail="GitHub token not received"
+        )
+
+    users.update_one(
+        {
+            "username": username
+        },
+        {
+            "$set": {
+                "github_token": access_token
+            }
+        }
+    )
+
+    return {
+        "success": True,
+        "message": "GitHub connected"
+    }
+
+@app.get("/github/repos")
+def github_repos(
+    authorization: str = Header(None)
+):
+
+    username = current_user(authorization)
+
+    user = users.find_one({
+        "username": username
+    })
+
+    token = user.get("github_token")
+
+    if not token:
+        raise HTTPException(
+            400,
+            "GitHub not connected"
+        )
+
+    res = requests.get(
+        "https://api.github.com/user/repos",
+        headers={
+            "Authorization": f"Bearer {token}",
+            "Accept": "application/vnd.github+json"
+        }
+    )
+
+    return [
+        {
+            "name": repo["name"],
+            "full_name": repo["full_name"],
+            "clone_url": repo["clone_url"],
+            "private": repo["private"]
+        }
+        for repo in res.json()
+    ]
+
+
+
 
 @app.get("/{full_path:path}")
 def static_files(
