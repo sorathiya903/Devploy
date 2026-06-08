@@ -218,6 +218,135 @@ def project_commits(
 
     return commits
 
+
+def deploy_commit_worker(
+    project_name,
+    repo_url,
+    base_dir,
+    sha
+):
+
+    async def run():
+
+        try:
+
+            repo_path = f"/tmp/{project_name}"
+
+            if os.path.exists(repo_path):
+                shutil.rmtree(repo_path)
+
+            await push_log(
+                project_name,
+                f"Deploying commit {sha[:7]}",
+                "cloning"
+            )
+
+            result = subprocess.run(
+                [
+                    "git",
+                    "clone",
+                    repo_url,
+                    repo_path
+                ],
+                capture_output=True,
+                text=True
+            )
+
+            if result.returncode != 0:
+                await push_log(
+                    project_name,
+                    result.stderr,
+                    "failed"
+                )
+                return
+
+            checkout = subprocess.run(
+                [
+                    "git",
+                    "-C",
+                    repo_path,
+                    "checkout",
+                    sha
+                ],
+                capture_output=True,
+                text=True
+            )
+
+            if checkout.returncode != 0:
+                await push_log(
+                    project_name,
+                    checkout.stderr,
+                    "failed"
+                )
+                return
+
+            source_path = repo_path
+
+            if base_dir:
+                source_path = os.path.join(
+                    repo_path,
+                    base_dir
+                )
+
+            final_path = os.path.join(
+                PROJECTS_DIR,
+                project_name
+            )
+
+            if os.path.exists(final_path):
+                shutil.rmtree(final_path)
+
+            os.makedirs(final_path)
+
+            for item in os.listdir(source_path):
+
+                if item == ".git":
+                    continue
+
+                src = os.path.join(
+                    source_path,
+                    item
+                )
+
+                dst = os.path.join(
+                    final_path,
+                    item
+                )
+
+                if os.path.isdir(src):
+                    shutil.copytree(src, dst)
+                else:
+                    shutil.copy2(src, dst)
+
+            projects.update_one(
+                {
+                    "name": project_name
+                },
+                {
+                    "$set": {
+                        "deployed_sha": sha,
+                        "status": "deployed"
+                    }
+                }
+            )
+
+            await push_log(
+                project_name,
+                "Commit deployed successfully 🚀",
+                "deployed"
+            )
+
+        except Exception as e:
+
+            await push_log(
+                project_name,
+                str(e),
+                "failed"
+            )
+
+    asyncio.run(run())
+
+            
 def deploy_worker(project_name, repo_url, base_dir, username):
 
 
@@ -553,6 +682,7 @@ def deploy(data: DeployRequest, authorization: str = Header(None)):
                 "name": project_name,
                 "owner": username,
                 "repo_url": data.repo_url,
+                "base_dir": data.base_dir,
                 "status": "queued",
                 "url": f"https://{project_name}.devploy.run.place",
                 "logs": [],
