@@ -241,14 +241,75 @@ cursor:pointer;
       ⋮
     </button>
 
-    <div id="menu"
-      style="display:none; position:absolute; right:20px; top:60px; background:white; padding:10px; border-radius:10px; box-shadow:0 5px 20px rgba(0,0,0,.1)">
+    <div id="menu" style="
+    display: none; 
+    position: absolute; 
+    right: 20px; 
+    top: 60px; 
+    background: #ffffff; 
+    padding: 8px; 
+    border-radius: 12px; 
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    min-width: 160px;
+">
+    <button onclick="showCreate()" style="
+        display: block;
+        width: 100%;
+        text-align: left;
+        background: none;
+        border: none;
+        padding: 10px 12px;
+        font-size: 14px;
+        color: #1f2937;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: background 0.2s;
+    " onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background='none'">
+        New Project
+    </button>
+    
+    <button onclick="showProjects()" style="
+        display: block;
+        width: 100%;
+        text-align: left;
+        background: none;
+        border: none;
+        padding: 10px 12px;
+        font-size: 14px;
+        color: #1f2937;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: background 0.2s;
+    " onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background='none'">
+        Show Projects
+    </button>
 
-      <button onclick="showCreate()">New Project</button>
-      <button onclick="showProjects()">Show Projects</button>
-      <button onclick="logout()">Logout</button>
+    <hr style="
+        border: 0;
+        height: 1px;
+        background: #e5e7eb;
+        margin: 6px 4px;
+    ">
+    
+    <button onclick="logout()" style="
+        display: block;
+        width: 100%;
+        text-align: left;
+        background: none;
+        border: none;
+        padding: 10px 12px;
+        font-size: 14px;
+        color: #dc2626;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: background 0.2s;
+    " onmouseover="this.style.background='#fef2f2'" onmouseout="this.style.background='none'">
+        Logout
+    </button>
+</div>
 
-    </div>
   </div>
 </header>
 
