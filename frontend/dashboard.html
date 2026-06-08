@@ -360,7 +360,12 @@ display:none;
           Optional. Leave empty if index.html is in root.
         </small>
       </div>
-
+<label>
+<input
+type="checkbox"
+id="autoDeploy">
+Auto Deploy on GitHub Push
+</label>
       <button id="deployBtn" onclick="deploy()" class="deploy-btn">
         Deploy Project
       </button>
@@ -392,7 +397,7 @@ localStorage.getItem("token");
 location.href =
 "https://github.com/login/oauth/authorize"+
 "?client_id=Ov23liCmqNeAfPFcuUEB"+
-"&scope=repo"+
+"&scope=repo,admin:repo_hook"+
 "&state="+encodeURIComponent(token);
 
 }
@@ -540,7 +545,10 @@ return;
       body: JSON.stringify({
         project_name: projectName,
         repo_url: repoUrl,
-        base_dir: baseDir
+        base_dir: baseDir,
+       auto_deploy: document
+        .getElementById("autoDeploy")
+        .checked
       })
     });
 
