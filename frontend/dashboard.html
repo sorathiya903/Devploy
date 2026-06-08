@@ -386,13 +386,16 @@ const token = localStorage.getItem("token");
   
 function connectGithub(){
 
-location.href=
+const token =
+localStorage.getItem("token");
+
+location.href =
 "https://github.com/login/oauth/authorize"+
 "?client_id=Ov23liCmqNeAfPFcuUEB"+
-"&scope=repo";
+"&scope=repo"+
+"&state="+encodeURIComponent(token);
 
 }
-
 async function checkGithub(){
 
 const res = await fetch(
