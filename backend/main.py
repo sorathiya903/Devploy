@@ -17,6 +17,7 @@ import shutil
 import traceback
 import os
 import asyncio
+import requests 
 
 # ==========================================
 # CONFIG
@@ -27,6 +28,10 @@ class DeployRequest(BaseModel):
     project_name: str
     repo_url: str
     base_dir: str = ""
+
+class CommitDeployRequest(BaseModel):
+    project_name: str
+    sha: str
 
 BASE_DIR = "/opt/render/project/src/backend"
 PROJECTS_DIR = os.path.join(BASE_DIR, "projects")
@@ -66,6 +71,21 @@ app.add_middleware(
 # ==========================================
 # JWT
 # ==========================================
+
+
+
+def github_repo_parts(url):
+
+    url = url.replace(
+        "https://github.com/",
+        ""
+    )
+
+    url = url.rstrip("/")
+
+    owner, repo = url.split("/")[:2]
+
+    return owner, repo
 
 
 class ConnectionManager:
@@ -161,7 +181,42 @@ def get_project_info(
 
 
 
+@app.get("/project-commits/{project_name}")
+def project_commits(
+    project_name: str,
+    authorization: str = Header(None)
+):
 
+    username = current_user(authorization)
+
+    project = projects.find_one({
+        "name": project_name,
+        "owner": username
+    })
+
+    if not project:
+        raise HTTPException(404, "Project not found")
+
+    owner, repo = github_repo_parts(
+        project["repo_url"]
+    )
+
+    res = requests.get(
+        f"https://api.github.com/repos/{owner}/{repo}/commits"
+    )
+
+    commits = []
+
+    for c in res.json()[:20]:
+
+        commits.append({
+            "sha": c["sha"],
+            "message": c["commit"]["message"],
+            "author": c["commit"]["author"]["name"],
+            "date": c["commit"]["author"]["date"]
+        })
+
+    return commits
 
 def deploy_worker(project_name, repo_url, base_dir, username):
 
@@ -259,6 +314,40 @@ def deploy_worker(project_name, repo_url, base_dir, username):
             await push_log(project_name, f"Error: {str(e)}", "failed")
 
     asyncio.run(run())
+
+
+
+@app.post("/deploy-commit")
+def deploy_commit(
+    data: CommitDeployRequest,
+    authorization: str = Header(None)
+):
+
+    username = current_user(authorization)
+
+    project = projects.find_one({
+        "name": data.project_name,
+        "owner": username
+    })
+
+    if not project:
+        raise HTTPException(404, "Project not found")
+
+    threading.Thread(
+        target=deploy_commit_worker,
+        args=(
+            project["name"],
+            project["repo_url"],
+            project["base_dir"],
+            data.sha
+        )
+    ).start()
+
+    return {
+        "success": True
+    }
+
+
 
 def create_token(username):
     payload = {
