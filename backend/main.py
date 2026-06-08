@@ -229,6 +229,7 @@ def project_logs(
     return project.get("logs", [])
 
 
+
 @app.get("/project-commits/{project_name}")
 def project_commits(
     project_name: str,
@@ -253,10 +254,16 @@ def project_commits(
         f"https://api.github.com/repos/{owner}/{repo}/commits"
     )
 
+    data = res.json()
+
+    if not isinstance(data, list):
+        return {
+            "github_error": data
+        }
+
     commits = []
 
-    for c in res.json()[:20]:
-
+    for c in data[:20]:
         commits.append({
             "sha": c["sha"],
             "message": c["commit"]["message"],
