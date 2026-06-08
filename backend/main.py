@@ -180,6 +180,54 @@ def get_project_info(
     return project
 
 
+@app.get("/project-status/{project_name}")
+def project_status(
+    project_name: str,
+    authorization: str = Header(None)
+):
+
+    username = current_user(authorization)
+
+    project = projects.find_one(
+        {
+            "name": project_name,
+            "owner": username
+        },
+        {
+            "_id": 0,
+            "status": 1,
+            "deployed_sha": 1,
+            "url": 1
+        }
+    )
+
+    if not project:
+        raise HTTPException(404)
+
+    return project
+
+
+
+@app.get("/project-logs/{project_name}")
+def project_logs(
+    project_name: str,
+    authorization: str = Header(None)
+):
+
+    username = current_user(authorization)
+
+    project = projects.find_one(
+        {
+            "name": project_name,
+            "owner": username
+        }
+    )
+
+    if not project:
+        raise HTTPException(404)
+
+    return project.get("logs", [])
+
 
 @app.get("/project-commits/{project_name}")
 def project_commits(
