@@ -333,7 +333,26 @@ cursor:pointer;
       <h3>Create New Project</h3>
 
       <input id="projectName" placeholder="Project Name">
-      <input id="repoUrl" placeholder="GitHub Repository URL">
+    <button
+id="connectGithubBtn"
+class="deploy-btn"
+onclick="connectGithub()">
+
+Connect GitHub
+
+</button>
+
+<select
+id="repoSelect"
+style="
+width:100%;
+padding:14px;
+border:1px solid #dbe3f0;
+border-radius:12px;
+margin-bottom:15px;
+display:none;
+">
+</select>
 
       <div class="form-group">
         <input type="text" id="baseDir" placeholder="Base Directory: frontend">
@@ -362,7 +381,55 @@ cursor:pointer;
 
 
 <script>
+const token = localStorage.getItem("token");
 
+  
+function connectGithub(){
+
+location.href=
+"https://github.com/login/oauth/authorize"+
+"?client_id=YOUR_CLIENT_ID"+
+"&scope=repo";
+
+}
+
+
+async function loadGithubRepos(){
+
+const res = await fetch(
+`${API}/github/repos`,
+{
+headers:{
+Authorization:`Bearer ${token}`
+}
+}
+);
+
+if(!res.ok){
+return;
+}
+
+const repos = await res.json();
+
+const select =
+document.getElementById("repoSelect");
+
+select.style.display = "block";
+
+select.innerHTML =
+repos.map(repo=>`
+<option
+value="${repo.clone_url}">
+${repo.full_name}
+</option>
+`).join("");
+
+document.getElementById(
+"connectGithubBtn"
+).style.display="none";
+
+}
+  
 function toggleMenu() {
   const m = document.getElementById("menu");
   m.style.display = (m.style.display === "block") ? "none" : "block";
@@ -423,12 +490,12 @@ console.log("data arrived ")
 async function deploy() {
 
   const projectName = document.getElementById("projectName").value.trim();
-  const repoUrl = document.getElementById("repoUrl").value.trim();
+  const repoUrl = document.getElementById("repoSelect").value.trim();
   const baseDir = document.getElementById("baseDir").value.trim();
 
-  if (!projectName || !repoUrl) {
-    alert("Fill all required fields");
-    return;
+  if(!projectName || !repoUrl){
+alert("Select repository");
+return;
   }
 
   const btn = document.getElementById("deployBtn");
@@ -481,7 +548,6 @@ function openProject(project){
     location.href =
         "project.html";
 }
-const token = localStorage.getItem("token");
 
 if (!token) location.href = "auth.html";
 
@@ -540,7 +606,7 @@ function logout() {
 
 getMe();
 loadProjects();
-
+loadGithubRepos()
 </script>
 
 </body>
