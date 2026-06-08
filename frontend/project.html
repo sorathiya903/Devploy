@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+
+<title>Project Dashboard</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+
+*{
+margin:0;
+padding:0;
+box-sizing:border-box;
+font-family:Inter,sans-serif;
+}
+
+body{
+background:#f5f7fb;
+color:#111827;
+}
+
+.header{
+background:white;
+padding:20px 30px;
+display:flex;
+justify-content:space-between;
+align-items:center;
+box-shadow:0 2px 10px rgba(0,0,0,.05);
+}
+
+.logo{
+font-size:24px;
+font-weight:700;
+color:#2563eb;
+}
+
+.back{
+background:#e5e7eb;
+border:none;
+padding:10px 15px;
+border-radius:10px;
+cursor:pointer;
+}
+
+.container{
+max-width:1200px;
+margin:auto;
+padding:25px;
+}
+
+.card{
+background:white;
+border-radius:20px;
+padding:20px;
+box-shadow:0 5px 20px rgba(0,0,0,.05);
+margin-bottom:20px;
+}
+
+.project-name{
+font-size:28px;
+font-weight:700;
+margin-bottom:10px;
+}
+
+.meta{
+color:#6b7280;
+margin-top:6px;
+}
+
+.url{
+color:#2563eb;
+text-decoration:none;
+word-break:break-all;
+}
+
+.status{
+display:inline-block;
+padding:8px 14px;
+border-radius:999px;
+background:#dbeafe;
+color:#1d4ed8;
+font-weight:600;
+margin-top:15px;
+}
+
+.top-actions{
+display:flex;
+gap:12px;
+margin-top:20px;
+flex-wrap:wrap;
+}
+
+.btn{
+border:none;
+padding:12px 16px;
+border-radius:12px;
+cursor:pointer;
+font-weight:600;
+}
+
+.primary{
+background:#2563eb;
+color:white;
+}
+
+.secondary{
+background:#e5e7eb;
+}
+
+.section-title{
+font-size:22px;
+font-weight:700;
+margin-bottom:15px;
+}
+
+.commit-list{
+display:flex;
+flex-direction:column;
+gap:15px;
+}
+
+.commit{
+background:white;
+border-radius:18px;
+padding:18px;
+box-shadow:0 5px 20px rgba(0,0,0,.05);
+}
+
+.commit-message{
+font-weight:700;
+margin-bottom:10px;
+}
+
+.commit-sha{
+font-family:monospace;
+color:#2563eb;
+margin-bottom:10px;
+}
+
+.commit-meta{
+font-size:14px;
+color:#6b7280;
+margin-bottom:15px;
+}
+
+.deploy-btn{
+background:#16a34a;
+color:white;
+border:none;
+padding:10px 14px;
+border-radius:10px;
+cursor:pointer;
+}
+
+.logs{
+background:#0f172a;
+color:#e2e8f0;
+border-radius:18px;
+padding:20px;
+height:350px;
+overflow:auto;
+font-family:monospace;
+}
+
+.log{
+margin-bottom:8px;
+padding-bottom:8px;
+border-bottom:1px solid rgba(255,255,255,.08);
+}
+
+.loading{
+padding:20px;
+text-align:center;
+color:#6b7280;
+}
+
+.empty{
+text-align:center;
+padding:40px;
+color:#6b7280;
+}
+
+</style>
+</head>
+<body>
+
+<div class="header">
+
+<div class="logo">Devploy</div>
+
+<button class="back" onclick="location.href='dashboard.html'">
+← Back
+</button>
+
+</div>
+
+<div class="container">
+
+<div class="card">
+
+<div id="projectName" class="project-name">
+Loading...
+</div>
+
+<div class="meta">
+URL:
+<a id="projectUrl" class="url" target="_blank"></a>
+</div>
+
+<div class="meta">
+Current Commit:
+<span id="currentSha">-</span>
+</div>
+
+<div id="statusBadge" class="status">
+Loading
+</div>
+
+<div class="top-actions">
+<button class="btn primary" onclick="loadCommits()">
+Reload Commits
+</button>
+
+<button class="btn secondary" onclick="clearLogs()">
+Clear Logs
+</button>
+</div>
+
+</div>
+
+<div class="card">
+
+<div class="section-title">
+Deployment Logs
+</div>
+
+<div id="logs" class="logs"></div>
+
+</div>
+
+<div>
+
+<div class="section-title">
+GitHub Commits
+</div>
+
+<div id="commits" class="commit-list">
+<div class="loading">Loading commits...</div>
+</div>
+
+</div>
+
+</div>
+
+<script>
+
+const API="https://devploy.onrender.com";
+
+const token=localStorage.getItem("token");
+
+if(!token){
+location.href="auth.html";
+}
+
+const project=
+new URLSearchParams(location.search)
+.get("project");
+
+let socket=null;
+
+async function loadProject(){
+
+const res=await fetch(
+`${API}/project/${project}`,
+{
+headers:{
+Authorization:`Bearer ${token}`
+}
+}
+);
+
+const data=await res.json();
+
+document.getElementById("projectName").innerText=
+data.name;
+
+document.getElementById("projectUrl").innerText=
+data.url;
+
+document.getElementById("projectUrl").href=
+data.url;
+
+document.getElementById("statusBadge").innerText=
+data.status || "unknown";
+
+}
+
+async function loadStatus(){
+
+const res=await fetch(
+`${API}/project-status/${project}`,
+{
+headers:{
+Authorization:`Bearer ${token}`
+}
+}
+);
+
+const data=await res.json();
+
+document.getElementById("currentSha").innerText=
+data.deployed_sha
+? data.deployed_sha.substring(0,7)
+: "-";
+
+document.getElementById("statusBadge").innerText=
+data.status || "unknown";
+
+}
+
+async function loadCommits(){
+
+const box=document.getElementById("commits");
+
+box.innerHTML=
+'<div class="loading">Loading commits...</div>';
+
+const res=await fetch(
+`${API}/project-commits/${project}`,
+{
+headers:{
+Authorization:`Bearer ${token}`
+}
+}
+);
+
+const commits=await res.json();
+
+if(!commits.length){
+
+box.innerHTML=
+'<div class="empty">No commits found</div>';
+
+return;
+
+}
+
+box.innerHTML=commits.map(c=>`
+
+<div class="commit">
+
+<div class="commit-message">
+${escapeHtml(c.message)}
+</div>
+
+<div class="commit-sha">
+${c.sha}
+</div>
+
+<div class="commit-meta">
+${c.author}
+</div>
+
+<button
+class="deploy-btn"
+onclick="deployCommit('${c.sha}')">
+
+Deploy This Commit
+
+</button>
+
+</div>
+
+`).join("");
+
+}
+
+async function deployCommit(sha){
+
+if(!confirm(
+`Deploy commit ${sha.substring(0,7)} ?`
+)){
+return;
+}
+
+await fetch(
+`${API}/deploy-commit`,
+{
+method:"POST",
+headers:{
+"Content-Type":"application/json",
+Authorization:`Bearer ${token}`
+},
+body:JSON.stringify({
+project_name:project,
+sha:sha
+})
+}
+);
+
+}
+
+function connectLogs(){
+
+if(socket){
+socket.close();
+}
+
+socket=
+new WebSocket(
+`wss://devploy.onrender.com/ws/deploy/${project}`
+);
+
+socket.onmessage=(event)=>{
+
+const data=
+JSON.parse(event.data);
+
+const logs=
+document.getElementById("logs");
+
+logs.innerHTML+=`
+<div class="log">
+${data.msg}
+</div>
+`;
+
+logs.scrollTop=
+logs.scrollHeight;
+
+loadStatus();
+
+};
+
+}
+
+function clearLogs(){
+
+document.getElementById("logs").innerHTML="";
+
+}
+
+function escapeHtml(text){
+
+const div=
+document.createElement("div");
+
+div.innerText=text;
+
+return div.innerHTML;
+
+}
+
+loadProject();
+loadStatus();
+loadCommits();
+connectLogs();
+
+</script>
+
+</body>
+</html>
