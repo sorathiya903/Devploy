@@ -471,7 +471,16 @@ async function deploy() {
 
 /* ================= AUTH + PROJECTS ================= */
 
+function openProject(project){
 
+    localStorage.setItem(
+        "selectedProject",
+        project
+    );
+
+    location.href =
+        "project.html";
+}
 const token = localStorage.getItem("token");
 
 if (!token) location.href = "auth.html";
@@ -508,7 +517,8 @@ async function loadProjects() {
   container.innerHTML = `
     <div class="grid">
       ${projects.map(p => `
-        <div class="card">
+        <div class="card"
+onclick="openProject('${p.name}')">
           <h3>${p.name}</h3>
           <div class="meta">Status: ${p.status}</div>
           <div class="meta">${p.url}</div>
