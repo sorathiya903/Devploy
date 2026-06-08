@@ -388,12 +388,34 @@ function connectGithub(){
 
 location.href=
 "https://github.com/login/oauth/authorize"+
-"?client_id=YOUR_CLIENT_ID"+
+"?client_id=Ov23liCmqNeAfPFcuUEB"+
 "&scope=repo";
 
 }
 
+async function checkGithub(){
 
+const res = await fetch(
+`${API}/github/status`,
+{
+headers:{
+Authorization:`Bearer ${token}`
+}
+}
+);
+
+const data = await res.json();
+
+if(data.connected){
+
+loadGithubRepos();
+
+}
+
+  }
+
+
+  
 async function loadGithubRepos(){
 
 const res = await fetch(
@@ -606,7 +628,7 @@ function logout() {
 
 getMe();
 loadProjects();
-loadGithubRepos()
+checkGithub();
 </script>
 
 </body>
