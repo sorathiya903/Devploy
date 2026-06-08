@@ -684,6 +684,7 @@ def deploy(data: DeployRequest, authorization: str = Header(None)):
                 "repo_url": data.repo_url,
                 "base_dir": data.base_dir,
                 "status": "queued",
+                "deployed_sha": "",
                 "url": f"https://{project_name}.devploy.run.place",
                 "logs": [],
                 "created_at": datetime.utcnow()
