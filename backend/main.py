@@ -878,6 +878,58 @@ def root(request: Request):
 # STATIC FILES
 # ==========================================
 
+@app.get("/github/status")
+def github_status(
+    authorization: str = Header(None)
+):
+
+    username = current_user(authorization)
+
+    user = users.find_one(
+        {"username": username}
+    )
+
+    return {
+        "connected":
+        bool(user.get("github_token"))
+    }
+    
+
+
+@app.get("/github/repos")
+def github_repos(
+    authorization: str = Header(None)
+):
+
+    username = current_user(authorization)
+
+    user = users.find_one(
+        {"username": username}
+    )
+
+    github_token = user.get(
+        "github_token"
+    )
+
+    if not github_token:
+        raise HTTPException(
+            400,
+            "GitHub not connected"
+        )
+
+    res = requests.get(
+        "https://api.github.com/user/repos?per_page=100",
+        headers={
+            "Authorization":
+            f"Bearer {github_token}",
+            "Accept":
+            "application/vnd.github+json"
+        }
+    )
+
+    return res.json()
+
+
 
 @app.get("/github/callback")
 def github_callback(
@@ -885,19 +937,14 @@ def github_callback(
     state: str
 ):
 
-    # state contains your JWT
     payload = verify_token(state)
 
     if not payload:
-        raise HTTPException(
-            status_code=401,
-            detail="Invalid state token"
-        )
+        raise HTTPException(401)
 
     username = payload["username"]
 
-    # Exchange GitHub code for access token
-    res = requests.post(
+    token_res = requests.post(
         "https://github.com/login/oauth/access_token",
         headers={
             "Accept": "application/json"
@@ -909,22 +956,10 @@ def github_callback(
         }
     )
 
-    github_data = res.json()
-
-    access_token = github_data.get(
-        "access_token"
-    )
-
-    if not access_token:
-        raise HTTPException(
-            status_code=400,
-            detail="GitHub token not received"
-        )
+    access_token = token_res.json()["access_token"]
 
     users.update_one(
-        {
-            "username": username
-        },
+        {"username": username},
         {
             "$set": {
                 "github_token": access_token
@@ -932,49 +967,12 @@ def github_callback(
         }
     )
 
-    return {
-        "success": True,
-        "message": "GitHub connected"
-    }
-
-@app.get("/github/repos")
-def github_repos(
-    authorization: str = Header(None)
-):
-
-    username = current_user(authorization)
-
-    user = users.find_one({
-        "username": username
-    })
-
-    token = user.get("github_token")
-
-    if not token:
-        raise HTTPException(
-            400,
-            "GitHub not connected"
-        )
-
-    res = requests.get(
-        "https://api.github.com/user/repos",
-        headers={
-            "Authorization": f"Bearer {token}",
-            "Accept": "application/vnd.github+json"
-        }
-    )
-
-    return [
-        {
-            "name": repo["name"],
-            "full_name": repo["full_name"],
-            "clone_url": repo["clone_url"],
-            "private": repo["private"]
-        }
-        for repo in res.json()
-    ]
-
-
+    return HTMLResponse("""
+    <script>
+    window.close();
+    </script>
+    GitHub connected successfully.
+    """)
 
 
 @app.get("/{full_path:path}")
