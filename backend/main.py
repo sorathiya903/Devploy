@@ -135,6 +135,34 @@ async def deploy_ws(websocket: WebSocket, project_name: str):
         manager.disconnect(project_name, websocket)
 
 
+
+@app.get("/project/{project_name}")
+def get_project_info(
+    project_name: str,
+    authorization: str = Header(None)
+):
+
+    username = current_user(authorization)
+
+    project = projects.find_one(
+        {
+            "name": project_name,
+            "owner": username
+        },
+        {
+            "_id": 0
+        }
+    )
+
+    if not project:
+        raise HTTPException(404, "Project not found")
+
+    return project
+
+
+
+
+
 def deploy_worker(project_name, repo_url, base_dir, username):
 
 
