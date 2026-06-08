@@ -18,12 +18,6 @@ import traceback
 import os
 import asyncio
 
-def safe_broadcast(project, message):
-    loop = asyncio.get_event_loop()
-
-    if loop.is_running():
-        asyncio.create_task(manager.send(project, message))
-
 # ==========================================
 # CONFIG
 # ==========================================
