@@ -76,6 +76,8 @@ app.add_middleware(
 
 def github_repo_parts(url):
 
+    url = url.strip()
+
     url = url.replace(
         "https://github.com/",
         ""
@@ -83,10 +85,18 @@ def github_repo_parts(url):
 
     url = url.rstrip("/")
 
-    owner, repo = url.split("/")[:2]
+    if url.endswith(".git"):
+        url = url[:-4]
+
+    parts = url.split("/")
+
+    if len(parts) < 2:
+        raise Exception("Invalid GitHub URL")
+
+    owner = parts[0]
+    repo = parts[1]
 
     return owner, repo
-
 
 class ConnectionManager:
     def __init__(self):
