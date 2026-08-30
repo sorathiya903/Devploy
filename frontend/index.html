@@ -1,708 +1,353 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Devploy — Deploy Websites in Seconds</title>
-
-<style>
-:root{
---primary:#2563EB;
---primary-light:#60A5FA;
---dark:#0f172a;
---gray:#64748b;
---border:rgba(37,99,235,.12);
---glass:rgba(255,255,255,.75);
-}
-
-*{
-margin:0;
-padding:0;
-box-sizing:border-box;
-}
-
-html{
-scroll-behavior:smooth;
-}
-
-body{
-font-family:Inter,system-ui,sans-serif;
-background:#fff;
-color:var(--dark);
-overflow-x:hidden;
-}
-
-.container{
-width:min(1200px,92%);
-margin:auto;
-}
-
-section{
-padding:110px 0;
-}
-
-.gradient-bg{
-position:fixed;
-inset:0;
-pointer-events:none;
-z-index:-1;
-background:
-radial-gradient(circle at 20% 20%, rgba(37,99,235,.10), transparent 30%),
-radial-gradient(circle at 80% 10%, rgba(96,165,250,.12), transparent 35%),
-radial-gradient(circle at 50% 80%, rgba(37,99,235,.08), transparent 40%);
-}
-
-.glass{
-background:var(--glass);
-backdrop-filter:blur(18px);
-border:1px solid rgba(255,255,255,.4);
-box-shadow:
-0 10px 30px rgba(37,99,235,.06),
-0 20px 60px rgba(37,99,235,.10);
-}
-
-.navbar{
-position:fixed;
-top:0;
-width:100%;
-z-index:1000;
-backdrop-filter:blur(20px);
-background:rgba(255,255,255,.75);
-border-bottom:1px solid #e2e8f0;
-}
-
-.nav-inner{
-height:78px;
-display:flex;
-justify-content:space-between;
-align-items:center;
-}
-
-.logo{
-display:flex;
-align-items:center;
-gap:12px;
-font-size:1.2rem;
-font-weight:800;
-}
-
-.logo-icon{
-width:42px;
-height:42px;
-border-radius:12px;
-background:linear-gradient(135deg,var(--primary),var(--primary-light));
-display:flex;
-align-items:center;
-justify-content:center;
-color:#fff;
-font-weight:700;
-}
-
-.nav-actions{
-display:flex;
-gap:12px;
-}
-
-.btn{
-padding:14px 22px;
-border-radius:14px;
-text-decoration:none;
-font-weight:600;
-transition:.3s;
-display:inline-flex;
-align-items:center;
-justify-content:center;
-}
-
-.btn-primary{
-background:linear-gradient(135deg,var(--primary),var(--primary-light));
-color:#fff;
-box-shadow:0 10px 25px rgba(37,99,235,.25);
-}
-
-.btn-primary:hover{
-transform:translateY(-2px);
-}
-
-.btn-secondary{
-border:1px solid #dbeafe;
-color:var(--dark);
-background:#fff;
-}
-
-.hero{
-padding-top:180px;
-}
-
-.hero-grid{
-display:grid;
-grid-template-columns:1fr 1fr;
-gap:80px;
-align-items:center;
-}
-
-.hero h1{
-font-size:clamp(3rem,7vw,5.6rem);
-line-height:1;
-font-weight:900;
-margin-bottom:24px;
-}
-
-.hero p{
-font-size:1.15rem;
-line-height:1.8;
-color:var(--gray);
-margin-bottom:40px;
-max-width:600px;
-}
-
-.hero-actions{
-display:flex;
-gap:14px;
-flex-wrap:wrap;
-}
-
-.dashboard-card{
-padding:28px;
-border-radius:30px;
-position:relative;
-animation:float 6s ease infinite;
-}
-
-.repo{
-background:#eff6ff;
-padding:16px;
-border-radius:16px;
-margin-bottom:16px;
-}
-
-.logs{
-background:#0f172a;
-color:#22c55e;
-padding:18px;
-border-radius:16px;
-font-family:monospace;
-font-size:.9rem;
-margin-bottom:16px;
-}
-
-.success{
-background:#ecfdf5;
-border:1px solid #bbf7d0;
-padding:16px;
-border-radius:16px;
-}
-
-.section-title{
-text-align:center;
-margin-bottom:70px;
-}
-
-.section-title h2{
-font-size:clamp(2rem,4vw,3.5rem);
-margin-bottom:16px;
-}
-
-.section-title p{
-color:var(--gray);
-max-width:650px;
-margin:auto;
-line-height:1.7;
-}
-
-.features-grid{
-display:grid;
-grid-template-columns:repeat(3,1fr);
-gap:24px;
-}
-
-.card{
-padding:32px;
-border-radius:24px;
-transition:.3s;
-}
-
-.card:hover{
-transform:translateY(-8px);
-}
-
-.icon{
-width:60px;
-height:60px;
-border-radius:18px;
-display:flex;
-align-items:center;
-justify-content:center;
-background:#eff6ff;
-font-size:26px;
-margin-bottom:18px;
-}
-
-.card h3{
-margin-bottom:12px;
-}
-
-.card p{
-color:var(--gray);
-line-height:1.8;
-}
-
-.steps{
-display:grid;
-grid-template-columns:repeat(3,1fr);
-gap:40px;
-}
-
-.step{
-text-align:center;
-position:relative;
-}
-
-.step-circle{
-width:70px;
-height:70px;
-border-radius:50%;
-background:linear-gradient(135deg,var(--primary),var(--primary-light));
-color:white;
-display:flex;
-align-items:center;
-justify-content:center;
-margin:auto auto 20px;
-font-weight:700;
-font-size:1.2rem;
-}
-
-.arrow{
-position:absolute;
-right:-40px;
-top:35px;
-font-size:24px;
-color:var(--primary);
-animation:pulse 1.5s infinite;
-}
-
-.preview{
-background:#f8fafc;
-}
-
-.dashboard-preview{
-padding:28px;
-border-radius:30px;
-}
-
-.topbar{
-display:flex;
-justify-content:space-between;
-margin-bottom:24px;
-}
-
-.project-grid{
-display:grid;
-grid-template-columns:repeat(3,1fr);
-gap:20px;
-}
-
-.project{
-background:#fff;
-padding:20px;
-border-radius:18px;
-border:1px solid #e2e8f0;
-}
-
-.status{
-display:inline-block;
-margin-top:10px;
-font-size:.9rem;
-padding:6px 10px;
-border-radius:999px;
-}
-
-.live{
-background:#dcfce7;
-color:#166534;
-}
-
-.deploying{
-background:#fef3c7;
-color:#92400e;
-}
-
-.modal{
-margin-top:24px;
-padding:24px;
-border-radius:20px;
-background:white;
-border:1px solid #e2e8f0;
-}
-
-.modal input{
-width:100%;
-padding:12px;
-margin-bottom:12px;
-border:1px solid #dbeafe;
-border-radius:12px;
-}
-
-.cta{
-text-align:center;
-background:
-linear-gradient(135deg,#2563EB,#60A5FA);
-color:white;
-}
-
-.cta h2{
-font-size:clamp(2.5rem,5vw,4rem);
-margin-bottom:16px;
-}
-
-.cta p{
-margin-bottom:30px;
-opacity:.95;
-}
-
-footer{
-background:#0f172a;
-color:white;
-padding:60px 0;
-}
-
-.footer-grid{
-display:flex;
-justify-content:space-between;
-flex-wrap:wrap;
-gap:30px;
-}
-
-.footer-links{
-display:flex;
-gap:20px;
-flex-wrap:wrap;
-}
-
-.footer-links a{
-color:#cbd5e1;
-text-decoration:none;
-}
-
-.footer-bottom{
-margin-top:30px;
-padding-top:20px;
-border-top:1px solid rgba(255,255,255,.1);
-color:#94a3b8;
-}
-
-.fade{
-opacity:0;
-transform:translateY(30px);
-transition:.8s;
-}
-
-.fade.show{
-opacity:1;
-transform:none;
-}
-
-@keyframes float{
-50%{
-transform:translateY(-10px);
-}
-}
-
-@keyframes pulse{
-50%{
-opacity:.4;
-}
-}
-
-@media(max-width:991px){
-
-.hero-grid,
-.features-grid,
-steps,
-.project-grid{
-grid-template-columns:1fr;
-}
-
-.steps{
-grid-template-columns:1fr;
-}
-
-.arrow{
-display:none;
-}
-
-.hero{
-text-align:center;
-}
-
-.hero p{
-margin:auto auto 35px;
-}
-
-.hero-actions{
-justify-content:center;
-}
-
-.project-grid{
-grid-template-columns:1fr;
-}
-}
-</style>
-</head>
-<body>
-
-<div class="gradient-bg"></div>
-
-<nav class="navbar">
-<div class="container nav-inner">
-
-<div class="logo">
-<div class="logo-icon">D</div>
-Devploy
-</div>
-
-<div class="nav-actions">
-<a href="/auth.html" class="btn btn-secondary">Login</a>
-<a href="/dashboard.html" class="btn btn-primary">Dashboard</a>
-</div>
-
-</div>
-</nav>
-
-<section class="hero">
-<div class="container">
-
-<div class="hero-grid">
-
-<div>
-
-<h1>Deploy Websites in Seconds.</h1>
-
-<p>
-Connect your GitHub repository and launch your website
-with a single click. Devploy automates deployment workflows,
-builds your project, and provides a live URL without managing servers.
-</p>
-
-<div class="hero-actions">
-<a href="/auth.html" class="btn btn-primary">Get Started Free</a>
-<a href="/dashboard.html" class="btn btn-secondary">View Dashboard</a>
-</div>
-
-</div>
-
-<div class="dashboard-card glass">
-
-<div class="repo">
-<strong>GitHub Repository</strong><br>
-github.com/username/project
-</div>
-
-<div class="logs">
-Cloning repository...<br>
-Installing dependencies...<br>
-Running build command...<br>
-Generating deployment...<br>
-Deployment complete.
-</div>
-
-<div class="success">
-<strong>Deployment Successful</strong><br>
-project.devploy.app
-</div>
-
-</div>
-
-</div>
-
-</div>
-</section>
-
-<section>
-<div class="container">
-
-<div class="section-title fade">
-<h2>Everything Needed To Deploy</h2>
-<p>
-A streamlined workflow for developers who want to focus on building instead of infrastructure.
-</p>
-</div>
-
-<div class="features-grid">
-
-<div class="card glass fade">
-<div class="icon">🐙</div>
-<h3>GitHub Integration</h3>
-<p>
-Connect repositories directly and trigger deployments from your codebase.
-</p>
-</div>
-
-<div class="card glass fade">
-<div class="icon">🚀</div>
-<h3>One Click Deployment</h3>
-<p>
-Deploy projects quickly without configuring servers manually.
-</p>
-</div>
-
-<div class="card glass fade">
-<div class="icon">🛡️</div>
-<h3>Secure Authentication</h3>
-<p>
-Protect accounts using secure authentication and session management.
-</p>
-</div>
-
-</div>
-
-</div>
-</section>
-
-<section>
-<div class="container">
-
-<div class="section-title fade">
-<h2>How It Works</h2>
-<p>From repository to live website in three simple steps.</p>
-</div>
-
-<div class="steps">
-
-<div class="step fade">
-<div class="step-circle">1</div>
-<h3>Connect Repository</h3>
-<p>Select a GitHub repository.</p>
-<div class="arrow">→</div>
-</div>
-
-<div class="step fade">
-<div class="step-circle">2</div>
-<h3>Configure Project</h3>
-<p>Choose build settings and environment variables.</p>
-<div class="arrow">→</div>
-</div>
-
-<div class="step fade">
-<div class="step-circle">3</div>
-<h3>Deploy Instantly</h3>
-<p>Receive a live project URL after deployment.</p>
-</div>
-
-</div>
-
-</div>
-</section>
-
-<section class="preview">
-<div class="container">
-
-<div class="section-title fade">
-<h2>Dashboard Preview</h2>
-<p>
-Manage projects, deployments, and URLs from a unified interface.
-</p>
-</div>
-
-<div class="dashboard-preview glass fade">
-
-<div class="topbar">
-<h3>Projects</h3>
-<button class="btn btn-primary">Create Project</button>
-</div>
-
-<div class="project-grid">
-
-<div class="project">
-<h4>Portfolio Site</h4>
-<div class="status live">Live</div>
-<p>portfolio.devploy.app</p>
-</div>
-
-<div class="project">
-<h4>Company Website</h4>
-<div class="status deploying">Deploying</div>
-<p>building...</p>
-</div>
-
-<div class="project">
-<h4>Documentation</h4>
-<div class="status live">Live</div>
-<p>docs.devploy.app</p>
-</div>
-
-</div>
-
-<div class="modal">
-<h4>Create Project</h4>
-<br>
-<input placeholder="Repository URL">
-<input placeholder="Project Name">
-<input placeholder="Build Command">
-<button class="btn btn-primary">Create Project</button>
-</div>
-
-</div>
-
-</div>
-</section>
-
-<section class="cta">
-<div class="container">
-
-<h2>Start Deploying Today</h2>
-
-<p>
-Build. Deploy. Share.
-</p>
-
-<a href="/dashboard.html" class="btn btn-secondary">
-Get Started
-</a>
-
-</div>
-</section>
-
-<footer>
-
-<div class="container">
-
-<div class="footer-grid">
-
-<div>
-<h3>Devploy</h3>
-<p>Modern deployment platform for GitHub-powered projects.</p>
-</div>
-
-<div class="footer-links">
-
-<a href="/dashboard.html">Dashboard</a>
-
-</div>
-
-</div>
-
-<div class="footer-bottom">
-© Devploy. All rights reserved.
-</div>
-
-</div>
-
-</footer>
-
-<script>
-const observer = new IntersectionObserver(entries=>{
-entries.forEach(entry=>{
-if(entry.isIntersecting){
-entry.target.classList.add('show');
-}
-});
-},{threshold:.15});
-
-document.querySelectorAll('.fade').forEach(el=>{
-observer.observe(el);
-});
-</script>
-
-</body>
-  </html>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- SEO -->
+  <title>Devploy — Deploy Websites Instantly from GitHub</title>
+  <meta
+    name="description"
+    content="Devploy is a modern deployment platform that lets developers deploy GitHub projects in seconds. Connect your repository, build your project, and launch it with one click."
+  >
+  <meta name="keywords" content="website deployment, GitHub deployment, developer deployment platform, deploy website, Devploy">
+  <meta name="robots" content="index, follow">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;600;700&display=swap"
+    rel="stylesheet"
+  >
+
+  <style>
+    :root {
+      --black: #000000;
+      --black-1: #050505;
+      --black-2: #080808;
+      --black-3: #0d0d0d;
+      --black-4: #111111;
+
+      --white: #ffffff;
+      --white-90: rgba(255,255,255,.90);
+      --white-70: rgba(255,255,255,.70);
+      --white-50: rgba(255,255,255,.50);
+      --white-30: rgba(255,255,255,.30);
+      --white-15: rgba(255,255,255,.15);
+      --white-08: rgba(255,255,255,.08);
+      --white-05: rgba(255,255,255,.05);
+
+      --border: rgba(255,255,255,.10);
+      --border-hover: rgba(255,255,255,.24);
+
+      --max-width: 1200px;
+
+      --ease: cubic-bezier(.22, 1, .36, 1);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      font-family: "Inter", sans-serif;
+      background: var(--black);
+      color: var(--white);
+      overflow-x: hidden;
+      line-height: 1.6;
+    }
+
+    ::selection {
+      background: #fff;
+      color: #000;
+    }
+
+    a {
+      color: inherit;
+    }
+
+    button,
+    input {
+      font: inherit;
+    }
+
+    .container {
+      width: min(var(--max-width), 90%);
+      margin-inline: auto;
+    }
+
+    /* =========================
+       BACKGROUND
+    ========================= */
+
+    .background {
+      position: fixed;
+      inset: 0;
+      z-index: -10;
+      pointer-events: none;
+      background:
+        radial-gradient(
+          circle at 15% 10%,
+          rgba(255,255,255,.07),
+          transparent 28%
+        ),
+        radial-gradient(
+          circle at 85% 20%,
+          rgba(255,255,255,.045),
+          transparent 25%
+        ),
+        radial-gradient(
+          circle at 50% 100%,
+          rgba(255,255,255,.04),
+          transparent 35%
+        ),
+        #000;
+    }
+
+    .grid-bg {
+      position: fixed;
+      inset: 0;
+      z-index: -9;
+      pointer-events: none;
+      opacity: .28;
+
+      background-image:
+        linear-gradient(rgba(255,255,255,.025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,.025) 1px, transparent 1px);
+
+      background-size: 60px 60px;
+
+      mask-image: linear-gradient(
+        to bottom,
+        black,
+        transparent 90%
+      );
+    }
+
+    .noise {
+      position: fixed;
+      inset: 0;
+      z-index: -8;
+      pointer-events: none;
+      opacity: .035;
+
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.7'/%3E%3C/svg%3E");
+    }
+
+    /* =========================
+       NAVBAR
+    ========================= */
+
+    .navbar {
+      position: fixed;
+      top: 16px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: min(1160px, 92%);
+      z-index: 1000;
+
+      border: 1px solid var(--border);
+      border-radius: 18px;
+
+      background: rgba(8,8,8,.76);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+
+      box-shadow:
+        0 20px 70px rgba(0,0,0,.45),
+        inset 0 1px rgba(255,255,255,.04);
+
+      animation: navEnter .8s var(--ease) both;
+    }
+
+    .nav-inner {
+      min-height: 70px;
+      padding: 0 10px 0 16px;
+
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+    }
+
+    .logo {
+      display: inline-flex;
+      align-items: center;
+      gap: 11px;
+
+      font-family: "Space Grotesk", sans-serif;
+      font-size: 1.15rem;
+      font-weight: 700;
+      letter-spacing: -.03em;
+      text-decoration: none;
+    }
+
+    .logo-icon {
+      width: 38px;
+      height: 38px;
+
+      display: grid;
+      place-items: center;
+
+      border-radius: 11px;
+
+      background: #fff;
+      color: #000;
+
+      font-family: "Space Grotesk", sans-serif;
+      font-size: 1.05rem;
+      font-weight: 700;
+
+      box-shadow:
+        0 0 0 1px rgba(255,255,255,.2),
+        0 8px 30px rgba(255,255,255,.12);
+
+      transition:
+        transform .4s var(--ease),
+        box-shadow .4s var(--ease);
+    }
+
+    .logo:hover .logo-icon {
+      transform: rotate(-6deg) scale(1.06);
+      box-shadow:
+        0 0 0 1px rgba(255,255,255,.4),
+        0 12px 40px rgba(255,255,255,.18);
+    }
+
+    .nav-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* =========================
+       BUTTONS
+    ========================= */
+
+    .btn {
+      position: relative;
+      isolation: isolate;
+
+      min-height: 48px;
+      padding: 0 19px;
+
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 9px;
+
+      border-radius: 12px;
+
+      text-decoration: none;
+      font-size: .9rem;
+      font-weight: 700;
+
+      cursor: pointer;
+
+      border: 1px solid transparent;
+
+      transition:
+        transform .35s var(--ease),
+        background .35s var(--ease),
+        color .35s var(--ease),
+        border-color .35s var(--ease),
+        box-shadow .35s var(--ease);
+    }
+
+    .btn::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      z-index: -1;
+
+      border-radius: inherit;
+
+      background: linear-gradient(
+        120deg,
+        transparent 20%,
+        rgba(255,255,255,.22),
+        transparent 80%
+      );
+
+      transform: translateX(-120%);
+      transition: transform .65s var(--ease);
+    }
+
+    .btn:hover::after {
+      transform: translateX(120%);
+    }
+
+    .btn:hover {
+      transform: translateY(-3px);
+    }
+
+    .btn:active {
+      transform: translateY(-1px) scale(.98);
+    }
+
+    .btn-primary {
+      background: #fff;
+      color: #000;
+
+      box-shadow:
+        0 10px 30px rgba(255,255,255,.10);
+    }
+
+    .btn-primary:hover {
+      background: #e9e9e9;
+
+      box-shadow:
+        0 15px 40px rgba(255,255,255,.18);
+    }
+
+    .btn-secondary {
+      background: rgba(255,255,255,.035);
+      color: #fff;
+      border-color: var(--border);
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255,255,255,.09);
+      border-color: var(--border-hover);
+    }
+
+    /* =========================
+       HERO
+    ========================= */
+
+    .hero {
+      min-height: 100vh;
+      padding-top: 190px;
+      padding-bottom: 120px;
+
+      display: flex;
+      align-items: center;
+    }
+
+    .hero-grid {
+      display: grid;
+      grid-template-columns: 1.05fr .95fr;
+      align-items: center;
+      gap: 80px;
+    }
+
+    .hero-content {
+      animation: heroText .9s var(--ease) .1s both;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 9px;
+
+      margin-bottom: 25px;
+      padding: 7px 12px;
+
+      border: 1px solid
