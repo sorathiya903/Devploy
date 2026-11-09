@@ -24,13 +24,22 @@ import boto3
 from botocore.config import Config
 import mimetypes
 import uuid
-
+import zipfile
+import stat
 from botocore.exceptions import ClientError
 from fastapi.responses import StreamingResponse
 from starlette.background import BackgroundTask
 # ==========================================
 # CONFIG
 # ==========================================
+class FrameworkDeployRequest(BaseModel):
+    project_name: str
+    repo_url: str
+    base_dir: str = ""
+    build_command: str = "npm run build"
+    install_command: str = "npm ci"
+    output_dir: str = "dist"
+
 B2_KEY_ID = os.getenv("B2_KEY_ID")
 B2_APPLICATION_KEY = os.getenv("B2_APPLICATION_KEY")
 B2_BUCKET_NAME = os.getenv("B2_BUCKET_NAME")
@@ -100,7 +109,384 @@ app.add_middleware(
 # ==========================================
 # JWT
 # ==========================================
+GITHUB_API = "https://api.github.com"
 
+
+def actions_headers():
+    token = os.getenv("GITHUB_ACTIONS_TOKEN")
+
+    if not token:
+        raise Exception("GitHub Actions token is missing")
+
+    return {
+        "Authorization": f"Bearer {token}",
+        "Accept": "application/vnd.github+json",
+        "X-GitHub-Api-Version": "2022-11-28"
+    }
+
+
+def safe_extract_artifact(zip_path, destination):
+    os.makedirs(destination, exist_ok=True)
+
+    total_size = 0
+    max_files = 10000
+    max_size = 500 * 1024 * 1024
+
+    destination = os.path.abspath(destination)
+
+    with zipfile.ZipFile(zip_path, "r") as archive:
+
+        entries = archive.infolist()
+
+        if len(entries) > max_files:
+            raise Exception("Too many files in build artifact")
+
+        for entry in entries:
+            name = entry.filename
+
+            if "\\" in name or name.startswith("/"):
+                raise Exception("Invalid artifact path")
+
+            parts = name.split("/")
+
+            if ".." in parts:
+                raise Exception("Unsafe artifact path")
+
+            mode = entry.external_attr >> 16
+
+            if stat.S_ISLNK(mode):
+                raise Exception("Symbolic links are not allowed")
+
+            total_size += entry.file_size
+
+            if total_size > max_size:
+                raise Exception("Build artifact is too large")
+
+            target = os.path.abspath(
+                os.path.join(destination, *parts)
+            )
+
+            if os.path.commonpath([destination, target]) != destination:
+                raise Exception("Invalid artifact destination")
+
+            if entry.is_dir():
+                os.makedirs(target, exist_ok=True)
+                continue
+
+            os.makedirs(os.path.dirname(target), exist_ok=True)
+
+            with archive.open(entry) as source:
+                with open(target, "wb") as output:
+                    shutil.copyfileobj(source, output)
+
+
+def build_with_github_actions(
+    repo_url,
+    base_dir,
+    build_command,
+    install_command,
+    output_dir,
+    commit_sha=None,
+    timeout=1200
+):
+    owner = os.getenv("DEVPLOY_GITHUB_OWNER")
+    repo = os.getenv("DEVPLOY_GITHUB_REPO")
+
+    if not owner or not repo:
+        raise Exception("Devploy GitHub repository is not configured")
+
+    match = re.fullmatch(
+        r"https://github\.com/([A-Za-z0-9_.-]+)/([A-Za-z0-9_.-]+?)(?:\.git)?/?",
+        repo_url.strip()
+    )
+
+    if not match:
+        raise Exception("Only GitHub repository URLs are supported")
+
+    if not re.fullmatch(r"[A-Za-z0-9_./-]+", output_dir):
+        raise Exception("Invalid output directory")
+
+    if output_dir.startswith("/") or ".." in output_dir.split("/"):
+        raise Exception("Invalid output directory")
+
+    build_id = uuid.uuid4().hex
+
+    headers = actions_headers()
+    api_repo = f"{GITHUB_API}/repos/{owner}/{repo}"
+
+    dispatch = requests.post(
+        f"{api_repo}/dispatches",
+        headers=headers,
+        json={
+            "event_type": "devploy_build",
+            "client_payload": {
+                "build_id": build_id,
+                "repo_url": repo_url.strip(),
+                "base_dir": base_dir or "",
+                "commit_sha": commit_sha or "",
+                "build_command": build_command,
+                "install_command": install_command,
+                "output_dir": output_dir
+            }
+        },
+        timeout=20
+    )
+
+    if dispatch.status_code != 204:
+        raise Exception(
+            f"GitHub dispatch failed: {dispatch.status_code}"
+        )
+
+    expected_title = f"Devploy build {build_id}"
+    deadline = time.time() + timeout
+    workflow_run = None
+
+    while time.time() < deadline:
+
+        response = requests.get(
+            f"{api_repo}/actions/runs",
+            headers=headers,
+            params={
+                "event": "repository_dispatch",
+                "per_page": 100
+            },
+            timeout=20
+        )
+
+        response.raise_for_status()
+
+        runs = response.json().get("workflow_runs", [])
+
+        workflow_run = next(
+            (
+                run for run in runs
+                if run.get("display_title") == expected_title
+            ),
+            None
+        )
+
+        if workflow_run and workflow_run.get("status") == "completed":
+            break
+
+        time.sleep(8)
+
+    if not workflow_run:
+        raise Exception("GitHub build timed out")
+
+    if workflow_run.get("status") != "completed":
+        raise Exception("GitHub build timed out")
+
+    if workflow_run.get("conclusion") != "success":
+        raise Exception(
+            f"GitHub build failed: {workflow_run.get('conclusion')}"
+        )
+
+    run_id = workflow_run["id"]
+
+    response = requests.get(
+        f"{api_repo}/actions/runs/{run_id}/artifacts",
+        headers=headers,
+        timeout=20
+    )
+
+    response.raise_for_status()
+
+    artifacts = response.json().get("artifacts", [])
+
+    artifact = next(
+        (
+            item for item in artifacts
+            if item.get("name") == "build-output"
+            and not item.get("expired")
+        ),
+        None
+    )
+
+    if not artifact:
+        raise Exception("Build artifact not found")
+
+    if artifact.get("size_in_bytes", 0) > 250 * 1024 * 1024:
+        raise Exception("Compressed build artifact is too large")
+
+    download = requests.get(
+        f"{api_repo}/actions/artifacts/{artifact['id']}/zip",
+        headers=headers,
+        stream=True,
+        timeout=60
+    )
+
+    download.raise_for_status()
+
+    temp_parent = tempfile.mkdtemp(prefix="devploy-actions-")
+
+    try:
+        zip_path = os.path.join(temp_parent, "artifact.zip")
+
+        downloaded = 0
+        max_download = 250 * 1024 * 1024
+
+        with open(zip_path, "wb") as output:
+            for chunk in download.iter_content(1024 * 1024):
+                if chunk:
+                    downloaded += len(chunk)
+
+                    if downloaded > max_download:
+                        raise Exception("Artifact download too large")
+
+                    output.write(chunk)
+
+        build_dir = os.path.join(temp_parent, "output")
+
+        safe_extract_artifact(zip_path, build_dir)
+
+        sha_file = os.path.join(
+            build_dir,
+            "devploy_commit.txt"
+        )
+
+        if not os.path.isfile(sha_file):
+            raise Exception("Build commit information is missing")
+
+        with open(sha_file, "r") as f:
+            actual_sha = f.read().strip()
+
+        os.remove(sha_file)
+
+        if not re.fullmatch(r"[0-9a-fA-F]{40,64}", actual_sha):
+            raise Exception("Invalid commit SHA")
+
+        if not os.path.isfile(
+            os.path.join(build_dir, "index.html")
+        ):
+            raise Exception("Build output has no index.html")
+
+        return build_dir, actual_sha, temp_parent
+
+    except Exception:
+        shutil.rmtree(temp_parent, ignore_errors=True)
+        raise
+
+    finally:
+        download.close()
+
+
+def framework_deploy_worker(
+    project_name,
+    repo_url,
+    base_dir,
+    build_command,
+    install_command,
+    output_dir,
+    username
+):
+    async def run():
+
+        deployment_id = uuid.uuid4().hex
+
+        new_prefix = b2_project_prefix(
+            project_name,
+            deployment_id
+        )
+
+        activated = False
+        temp_parent = None
+
+        try:
+            existing = projects.find_one({
+                "name": project_name,
+                "owner": username
+            })
+
+            if not existing:
+                raise Exception("Project not found")
+
+            await push_log(
+                project_name,
+                "Starting framework build...",
+                "building"
+            )
+
+            build_dir, actual_sha, temp_parent = build_with_github_actions(
+                repo_url=repo_url,
+                base_dir=base_dir,
+                build_command=build_command,
+                install_command=install_command,
+                output_dir=output_dir
+            )
+
+            await push_log(
+                project_name,
+                "Build completed. Uploading files to B2...",
+                "uploading"
+            )
+
+            uploaded = upload_project_to_b2(
+                build_dir,
+                project_name,
+                deployment_id
+            )
+
+            if uploaded == 0:
+                raise Exception("No build files uploaded")
+
+            await push_log(
+                project_name,
+                f"Uploaded {uploaded} build files",
+                "finalizing"
+            )
+
+            result = projects.update_one(
+                {
+                    "name": project_name,
+                    "owner": username
+                },
+                {
+                    "$set": {
+                        "active_deployment_id": deployment_id,
+                        "deployed_sha": actual_sha,
+                        "status": "deployed"
+                    }
+                }
+            )
+
+            if result.matched_count == 0:
+                raise Exception("Project record not found")
+
+            activated = True
+
+            await push_log(
+                project_name,
+                "Framework deployment completed successfully 🚀",
+                "deployed"
+            )
+
+        except Exception as e:
+
+            print(
+                "FRAMEWORK DEPLOYMENT ERROR:",
+                traceback.format_exc()
+            )
+
+            if not activated:
+                try:
+                    delete_b2_prefix(new_prefix)
+                except Exception as cleanup_error:
+                    print("B2 cleanup failed:", cleanup_error)
+
+            await push_log(
+                project_name,
+                f"Framework deployment failed: {str(e)}",
+                "failed"
+            )
+
+        finally:
+            if temp_parent:
+                shutil.rmtree(
+                    temp_parent,
+                    ignore_errors=True
+                )
+
+    asyncio.run(run())
 def b2_project_prefix(project_name, deployment_id):
     return f"projects/{project_name}/{deployment_id}/"
 
@@ -296,6 +682,95 @@ async def push_log(project, message, status=None):
 
     # safe websocket broadcast
     await manager.send(project, data)
+
+
+@app.post("/deploy/framework")
+def deploy_framework(
+    data: FrameworkDeployRequest,
+    authorization: str = Header(None)
+):
+    username = current_user(authorization)
+
+    project_name = (
+        data.project_name
+        .strip()
+        .lower()
+        .replace(" ", "-")
+    )
+
+    if not re.fullmatch(r"[a-z0-9-]{1,50}", project_name):
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid project name"
+        )
+
+    if not re.fullmatch(
+        r"https://github\.com/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+(?:\.git)?/?",
+        data.repo_url.strip()
+    ):
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid GitHub repository URL"
+        )
+
+    # Prevent another user from claiming an existing project name
+    existing = projects.find_one({
+        "name": project_name
+    })
+
+    if existing and existing.get("owner") != username:
+        raise HTTPException(
+            status_code=409,
+            detail="Project name already exists"
+        )
+
+    projects.update_one(
+        {
+            "name": project_name,
+            "owner": username
+        },
+        {
+            "$set": {
+                "name": project_name,
+                "owner": username,
+                "repo_url": data.repo_url.strip(),
+                "base_dir": data.base_dir,
+                "deployment_type": "framework",
+                "build_command": data.build_command,
+                "install_command": data.install_command,
+                "output_dir": data.output_dir,
+                "status": "queued",
+                "url": f"https://devploys.netlify.app/{project_name}/"
+            },
+            "$setOnInsert": {
+                "logs": [],
+                "deployed_sha": "",
+                "created_at": datetime.utcnow()
+            }
+        },
+        upsert=True
+    )
+
+    threading.Thread(
+        target=framework_deploy_worker,
+        args=(
+            project_name,
+            data.repo_url.strip(),
+            data.base_dir,
+            data.build_command,
+            data.install_command,
+            data.output_dir,
+            username
+        ),
+        daemon=True
+    ).start()
+
+    return {
+        "success": True,
+        "project": project_name,
+        "deployment_type": "framework"
+    }
+
 
 
 @app.get("/b2-test")
