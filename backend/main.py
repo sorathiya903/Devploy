@@ -22,6 +22,12 @@ import re
 from fastapi.responses import RedirectResponse
 import boto3
 from botocore.config import Config
+import mimetypes
+import uuid
+
+from botocore.exceptions import ClientError
+from fastapi.responses import StreamingResponse
+from starlette.background import BackgroundTask
 # ==========================================
 # CONFIG
 # ==========================================
@@ -95,7 +101,122 @@ app.add_middleware(
 # JWT
 # ==========================================
 
+def b2_project_prefix(project_name, deployment_id):
+    return f"projects/{project_name}/{deployment_id}/"
 
+
+def upload_project_to_b2(local_path, project_name, deployment_id):
+
+    prefix = b2_project_prefix(project_name, deployment_id)
+    uploaded = 0
+
+    for root, dirs, files in os.walk(local_path, followlinks=False):
+
+        # Do not follow symbolic links
+        dirs[:] = [
+            d for d in dirs
+            if not os.path.islink(os.path.join(root, d))
+        ]
+
+        for filename in files:
+
+            file_path = os.path.join(root, filename)
+
+            if os.path.islink(file_path):
+                continue
+
+            relative_path = os.path.relpath(
+                file_path,
+                local_path
+            ).replace(os.sep, "/")
+
+            key = prefix + relative_path
+
+            content_type, _ = mimetypes.guess_type(file_path)
+
+            s3_client.upload_file(
+                file_path,
+                B2_BUCKET_NAME,
+                key,
+                ExtraArgs={
+                    "ContentType": content_type or
+                    "application/octet-stream"
+                }
+            )
+
+            uploaded += 1
+
+    return uploaded
+
+
+def delete_b2_prefix(prefix):
+
+    paginator = s3_client.get_paginator("list_objects_v2")
+
+    for page in paginator.paginate(
+        Bucket=B2_BUCKET_NAME,
+        Prefix=prefix
+    ):
+
+        objects = page.get("Contents", [])
+
+        for i in range(0, len(objects), 1000):
+
+            batch = objects[i:i + 1000]
+
+            if batch:
+                s3_client.delete_objects(
+                    Bucket=B2_BUCKET_NAME,
+                    Delete={
+                        "Objects": [
+                            {"Key": obj["Key"]}
+                            for obj in batch
+                        ],
+                        "Quiet": True
+                    }
+                )
+
+
+def get_b2_object(key):
+
+    try:
+        return s3_client.get_object(
+            Bucket=B2_BUCKET_NAME,
+            Key=key
+        )
+
+    except ClientError as e:
+
+        code = e.response.get(
+            "Error", {}
+        ).get("Code")
+
+        if code in ("NoSuchKey", "404", "NotFound"):
+            return None
+
+        raise
+
+
+def serve_b2_object(obj):
+
+    body = obj["Body"]
+
+    headers = {
+        "Cache-Control": "public, max-age=300"
+    }
+
+    if obj.get("ContentLength") is not None:
+        headers["Content-Length"] = str(obj["ContentLength"])
+
+    return StreamingResponse(
+        body.iter_chunks(chunk_size=1024 * 1024),
+        media_type=obj.get(
+            "ContentType",
+            "application/octet-stream"
+        ),
+        headers=headers,
+        background=BackgroundTask(body.close)
+    )
 
 def github_repo_parts(url):
 
@@ -353,22 +474,47 @@ def project_commits(
             "error": str(e)
     }
 
-
 def deploy_commit_worker(
     project_name,
     repo_url,
     base_dir,
-    sha
+    sha,
+    username
 ):
 
     async def run():
 
+        deployment_id = uuid.uuid4().hex
+
+        new_prefix = b2_project_prefix(
+            project_name,
+            deployment_id
+        )
+
+        activated = False
+
+        repo_parent = tempfile.mkdtemp(
+            prefix="devploy-"
+        )
+
+        repo_path = os.path.join(
+            repo_parent,
+            "repo"
+        )
+
         try:
 
-            repo_path = f"/tmp/{project_name}"
+            existing = projects.find_one({
+                "name": project_name,
+                "owner": username
+            })
 
-            if os.path.exists(repo_path):
-                shutil.rmtree(repo_path)
+            if not existing:
+                raise Exception("Project not found")
+
+            old_deployment_id = existing.get(
+                "active_deployment_id"
+            )
 
             await push_log(
                 project_name,
@@ -377,23 +523,14 @@ def deploy_commit_worker(
             )
 
             result = subprocess.run(
-                [
-                    "git",
-                    "clone",
-                    repo_url,
-                    repo_path
-                ],
+                ["git", "clone", repo_url, repo_path],
                 capture_output=True,
-                text=True
+                text=True,
+                timeout=300
             )
 
             if result.returncode != 0:
-                await push_log(
-                    project_name,
-                    result.stderr,
-                    "failed"
-                )
-                return
+                raise Exception(result.stderr)
 
             checkout = subprocess.run(
                 [
@@ -404,66 +541,76 @@ def deploy_commit_worker(
                     sha
                 ],
                 capture_output=True,
-                text=True
+                text=True,
+                timeout=120
             )
 
             if checkout.returncode != 0:
-                await push_log(
-                    project_name,
-                    checkout.stderr,
-                    "failed"
-                )
-                return
+                raise Exception(checkout.stderr)
 
             source_path = repo_path
 
-            if base_dir:
-                source_path = os.path.join(
-                    repo_path,
-                    base_dir
+            if base_dir and base_dir.strip():
+
+                source_path = os.path.realpath(
+                    os.path.join(repo_path, base_dir.strip())
                 )
 
-            final_path = os.path.join(
-                PROJECTS_DIR,
-                project_name
+                if os.path.commonpath(
+                    [repo_path, source_path]
+                ) != repo_path:
+                    raise Exception("Invalid base directory")
+
+            if not os.path.isfile(
+                os.path.join(source_path, "index.html")
+            ):
+                raise Exception("index.html not found")
+
+            await push_log(
+                project_name,
+                "Uploading commit files to B2...",
+                "uploading"
             )
 
-            if os.path.exists(final_path):
-                shutil.rmtree(final_path)
+            uploaded = upload_project_to_b2(
+                source_path,
+                project_name,
+                deployment_id
+            )
 
-            os.makedirs(final_path)
+            if uploaded == 0:
+                raise Exception("No project files uploaded")
 
-            for item in os.listdir(source_path):
-
-                if item == ".git":
-                    continue
-
-                src = os.path.join(
-                    source_path,
-                    item
-                )
-
-                dst = os.path.join(
-                    final_path,
-                    item
-                )
-
-                if os.path.isdir(src):
-                    shutil.copytree(src, dst)
-                else:
-                    shutil.copy2(src, dst)
-
-            projects.update_one(
+            result = projects.update_one(
                 {
-                    "name": project_name
+                    "name": project_name,
+                    "owner": username
                 },
                 {
                     "$set": {
+                        "active_deployment_id": deployment_id,
                         "deployed_sha": sha,
                         "status": "deployed"
                     }
                 }
             )
+
+            if result.matched_count == 0:
+                raise Exception("Project record not found")
+
+            activated = True
+
+            if old_deployment_id:
+
+                try:
+                    delete_b2_prefix(
+                        b2_project_prefix(
+                            project_name,
+                            old_deployment_id
+                        )
+                    )
+                except Exception as cleanup_error:
+                    print("Old version cleanup failed:", cleanup_error)
 
             await push_log(
                 project_name,
@@ -473,113 +620,214 @@ def deploy_commit_worker(
 
         except Exception as e:
 
+            if not activated:
+
+                try:
+                    delete_b2_prefix(new_prefix)
+                except Exception as cleanup_error:
+                    print("B2 cleanup failed:", cleanup_error)
+
             await push_log(
                 project_name,
-                str(e),
+                f"Commit deployment failed: {str(e)}",
                 "failed"
             )
 
+        finally:
+
+            shutil.rmtree(
+                repo_parent,
+                ignore_errors=True
+            )
+
     asyncio.run(run())
 
-            
 def deploy_worker(project_name, repo_url, base_dir, username):
 
-
     async def run():
+
+        deployment_id = uuid.uuid4().hex
+        new_prefix = b2_project_prefix(
+            project_name,
+            deployment_id
+        )
+
+        activated = False
+        repo_parent = tempfile.mkdtemp(
+            prefix="devploy-"
+        )
+
+        repo_path = os.path.join(
+            repo_parent,
+            "repo"
+        )
+
         try:
-            repo_path = f"/tmp/{project_name}"
 
-            await push_log(project_name, "Queued deployment", "queued")
+            existing = projects.find_one({
+                "name": project_name,
+                "owner": username
+            })
 
-            # -------------------------
-            # CLONE REPOSITORY
-            # -------------------------
-            await push_log(project_name, "Cloning repository...", "cloning")
+            if not existing:
+                raise Exception("Project not found")
+
+            old_deployment_id = existing.get(
+                "active_deployment_id"
+            )
+
+            await push_log(
+                project_name,
+                "Queued deployment",
+                "queued"
+            )
+
+            await push_log(
+                project_name,
+                "Cloning repository...",
+                "cloning"
+            )
 
             result = subprocess.run(
-                ["git", "clone", "--depth", "1", repo_url, repo_path],
+                [
+                    "git",
+                    "clone",
+                    "--depth",
+                    "1",
+                    repo_url,
+                    repo_path
+                ],
                 capture_output=True,
-                text=True
+                text=True,
+                timeout=300
             )
 
             if result.returncode != 0:
-                await push_log(project_name, "Clone failed", "failed")
-                await push_log(project_name, result.stderr or "git error", "failed")
-                return
+                raise Exception(
+                    result.stderr or "Git clone failed"
+                )
 
-            await push_log(project_name, "Repository cloned", "cloned")
-
-            # -------------------------
-            # RESOLVE SOURCE PATH
-            # -------------------------
             source_path = repo_path
 
             if base_dir and base_dir.strip():
-                source_path = os.path.join(repo_path, base_dir.strip())
 
-            # safety check
-            if not os.path.exists(source_path):
-                await push_log(
-                    project_name,
-                    f"Base directory not found: {base_dir}",
-                    "failed"
+                source_path = os.path.realpath(
+                    os.path.join(
+                        repo_path,
+                        base_dir.strip()
+                    )
                 )
-                return
 
-            index_file = os.path.join(source_path, "index.html")
+                if os.path.commonpath(
+                    [repo_path, source_path]
+                ) != repo_path:
+                    raise Exception("Invalid base directory")
 
-            if not os.path.exists(index_file):
-                await push_log(
-                    project_name,
-                    "index.html not found in selected directory",
-                    "failed"
-                )
-                return
+            if not os.path.isdir(source_path):
+                raise Exception("Base directory not found")
 
-            # -------------------------
-            # BUILD STEP (optional placeholder)
-            # -------------------------
-            await push_log(project_name, "Building project...", "building")
-            time.sleep(1)
+            if not os.path.isfile(
+                os.path.join(source_path, "index.html")
+            ):
+                raise Exception("index.html not found")
 
-            # -------------------------
-            # COPY ONLY BASE DIR CONTENTS
-            # -------------------------
-            final_path = os.path.join(PROJECTS_DIR, project_name)
+            await push_log(
+                project_name,
+                "Uploading project files to Backblaze...",
+                "uploading"
+            )
 
-            if os.path.exists(final_path):
-                shutil.rmtree(final_path)
+            uploaded = upload_project_to_b2(
+                source_path,
+                project_name,
+                deployment_id
+            )
 
-            os.makedirs(final_path, exist_ok=True)
+            if uploaded == 0:
+                raise Exception("No project files uploaded")
 
-            # copy only contents (not .git, not full repo)
-            for item in os.listdir(source_path):
+            await push_log(
+                project_name,
+                f"Uploaded {uploaded} files",
+                "finalizing"
+            )
 
-                if item == ".git":
-                    continue  # skip git metadata
+            result = projects.update_one(
+                {
+                    "name": project_name,
+                    "owner": username
+                },
+                {
+                    "$set": {
+                        "active_deployment_id": deployment_id,
+                        "deployed_sha": subprocess.run(
+                            [
+                                "git",
+                                "-C",
+                                repo_path,
+                                "rev-parse",
+                                "HEAD"
+                            ],
+                            capture_output=True,
+                            text=True
+                        ).stdout.strip(),
+                        "status": "deployed"
+                    }
+                }
+            )
 
-                src_item = os.path.join(source_path, item)
-                dst_item = os.path.join(final_path, item)
+            if result.matched_count == 0:
+                raise Exception("Project record not found")
 
-                if os.path.isdir(src_item):
-                    shutil.copytree(src_item, dst_item)
-                else:
-                    shutil.copy2(src_item, dst_item)
+            activated = True
 
-            # -------------------------
-            # FINALIZE
-            # -------------------------
-            await push_log(project_name, "Finalizing deployment...", "finalizing")
-            time.sleep(1)
+            # Remove old version only after new version is active
+            if old_deployment_id:
 
-            await push_log(project_name, "Deployment complete 🚀", "deployed")
+                try:
+                    delete_b2_prefix(
+                        b2_project_prefix(
+                            project_name,
+                            old_deployment_id
+                        )
+                    )
+
+                except Exception as cleanup_error:
+                    print(
+                        "Old deployment cleanup failed:",
+                        cleanup_error
+                    )
+
+            await push_log(
+                project_name,
+                "Deployment complete 🚀",
+                "deployed"
+            )
 
         except Exception as e:
-            await push_log(project_name, f"Error: {str(e)}", "failed")
+
+            # If upload failed, remove incomplete new version
+            if not activated:
+
+                try:
+                    delete_b2_prefix(new_prefix)
+                except Exception as cleanup_error:
+                    print("B2 cleanup failed:", cleanup_error)
+
+            await push_log(
+                project_name,
+                f"Deployment failed: {str(e)}",
+                "failed"
+            )
+
+        finally:
+
+            shutil.rmtree(
+                repo_parent,
+                ignore_errors=True
+            )
 
     asyncio.run(run())
-
-
 
 @app.post("/deploy-commit")
 def deploy_commit(
@@ -599,12 +847,7 @@ def deploy_commit(
 
     threading.Thread(
         target=deploy_commit_worker,
-        args=(
-            project["name"],
-            project["repo_url"],
-            project["base_dir"],
-            data.sha
-        )
+        args=(    project["name"],   project["repo_url"],   project["base_dir"],   data.sha,    username)
     ).start()
 
     return {
@@ -972,11 +1215,8 @@ async def github_webhook(
     threading.Thread(
         target=deploy_commit_worker,
         args=(
-            project["name"],
-            project["repo_url"],
-            project.get("base_dir", ""),
-            sha
-        )
+    project["name"],
+   project["repo_url"],    project.get("base_dir", ""),  sha, project["owner"])
     ).start()
 
     return {
@@ -1154,14 +1394,12 @@ def github_callback(
     GitHub connected successfully.
     """)
 
-
-
 @app.get("/{full_path:path}")
 def static_files(
     request: Request,
     full_path: str
 ):
-    # Extract project name from first URL segment
+
     parts = full_path.split("/")
 
     project_name = parts[0].strip()
@@ -1169,61 +1407,76 @@ def static_files(
     if not re.fullmatch(r"[a-z0-9-]{1,50}", project_name):
         raise HTTPException(404, "Project not found")
 
-    # Ensure project exists
     project = projects.find_one(
         {"name": project_name},
-        {"_id": 0, "name": 1}
+        {
+            "_id": 0,
+            "active_deployment_id": 1
+        }
     )
 
     if not project:
         raise HTTPException(404, "Project not found")
 
-    # Resolve project directory safely
-    project_path = os.path.realpath(
-        os.path.join(PROJECTS_DIR, project_name)
+    deployment_id = project.get(
+        "active_deployment_id"
     )
 
-    if not os.path.isdir(project_path):
-        raise HTTPException(404, "Project files not found")
+    if not deployment_id:
+        raise HTTPException(404, "Project not deployed")
 
-    # Redirect /project-name to /project-name/
     if len(parts) == 1 and not full_path.endswith("/"):
         return RedirectResponse(
             url=f"/{project_name}/",
             status_code=307
         )
 
-    # Determine requested file
     relative_path = "/".join(parts[1:])
 
     if not relative_path:
         relative_path = "index.html"
 
-    file_path = os.path.realpath(
-        os.path.join(project_path, relative_path)
+    # Reject unsafe paths
+    if (
+        "\\" in relative_path
+        or any(p in (".", "..") for p in relative_path.split("/"))
+    ):
+        raise HTTPException(403, "Invalid path")
+
+    prefix = b2_project_prefix(
+        project_name,
+        deployment_id
     )
 
-    # Prevent directory traversal
+    key = prefix + relative_path
+
     try:
-        if os.path.commonpath(
-            [project_path, file_path]
-        ) != project_path:
-            raise HTTPException(403, "Access denied")
-    except ValueError:
-        raise HTTPException(403, "Access denied")
 
-    # Serve requested file
-    if os.path.isfile(file_path):
-        return FileResponse(file_path)
+        obj = get_b2_object(key)
 
-    # SPA fallback only for extensionless routes
-    if not os.path.splitext(relative_path)[1]:
-        index_file = os.path.join(
-            project_path,
-            "index.html"
+        # SPA fallback for extensionless routes
+        if (
+            obj is None
+            and not os.path.splitext(relative_path)[1]
+        ):
+            obj = get_b2_object(
+                prefix + "index.html"
+            )
+
+        if obj is None:
+            raise HTTPException(404, "File not found")
+
+        return serve_b2_object(obj)
+
+    except HTTPException:
+        raise
+
+    except Exception as e:
+
+        print("B2 FILE SERVING ERROR:", repr(e))
+
+        raise HTTPException(
+            status_code=502,
+            detail="Unable to retrieve project file"
         )
 
-        if os.path.isfile(index_file):
-            return FileResponse(index_file)
-
-    raise HTTPException(404, "File not found")
