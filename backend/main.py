@@ -1075,7 +1075,7 @@ def deploy(
                 "base_dir": data.base_dir,
                 "auto_deploy": data.auto_deploy,
                 "status": "queued",
-                 "url": f"https://devploy.netlify.app/{project_name}/"
+                 "url": f"https://devploys.netlify.app/{project_name}/"
             },
             "$setOnInsert": {
                 "logs": [],
