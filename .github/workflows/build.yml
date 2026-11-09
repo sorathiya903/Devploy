@@ -1,0 +1,169 @@
+
+name: Devploy Framework Builder
+
+run-name: Devploy build ${{ github.event.client_payload.build_id }}
+
+on:
+  repository_dispatch:
+    types:
+      - devploy_build
+
+permissions: {}
+
+jobs:
+  build:
+    name: Build customer repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Validate and prepare inputs
+        id: config
+        shell: bash
+        env:
+          REPO_URL: ${{ github.event.client_payload.repo_url }}
+          COMMIT_SHA: ${{ github.event.client_payload.commit_sha }}
+          BASE_DIR: ${{ github.event.client_payload.base_dir }}
+          INSTALL_COMMAND: ${{ github.event.client_payload.install_command }}
+          BUILD_COMMAND: ${{ github.event.client_payload.build_command }}
+          OUTPUT_DIR: ${{ github.event.client_payload.output_dir }}
+        run: |
+          set -euo pipefail
+
+          if [[ ! "$REPO_URL" =~ ^https://github\.com/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+(\.git)?/?$ ]]; then
+            echo "Invalid GitHub repository URL"
+            exit 1
+          fi
+
+          if [[ -n "$COMMIT_SHA" && ! "$COMMIT_SHA" =~ ^[a-fA-F0-9]{40,64}$ ]]; then
+            echo "Invalid commit SHA"
+            exit 1
+          fi
+
+          if [[ -z "$INSTALL_COMMAND" || -z "$BUILD_COMMAND" || -z "$OUTPUT_DIR" ]]; then
+            echo "Install command, build command and output directory are required"
+            exit 1
+          fi
+
+          if [[ "$OUTPUT_DIR" = /* || "$OUTPUT_DIR" == *".."* ]]; then
+            echo "Invalid output directory"
+            exit 1
+          fi
+
+          echo "repo_url=$REPO_URL" >> "$GITHUB_OUTPUT"
+          echo "commit_sha=$COMMIT_SHA" >> "$GITHUB_OUTPUT"
+          echo "base_dir=$BASE_DIR" >> "$GITHUB_OUTPUT"
+          echo "output_dir=$OUTPUT_DIR" >> "$GITHUB_OUTPUT"
+
+      - name: Clone repository
+        shell: bash
+        env:
+          REPO_URL: ${{ steps.config.outputs.repo_url }}
+          COMMIT_SHA: ${{ steps.config.outputs.commit_sha }}
+        run: |
+          set -euo pipefail
+
+          git clone --depth 1 "$REPO_URL" source
+
+          if [[ -n "$COMMIT_SHA" ]]; then
+            git -C source fetch --depth 1 origin "$COMMIT_SHA"
+            git -C source checkout --detach FETCH_HEAD
+          fi
+
+      - name: Select project directory
+        id: project
+        shell: bash
+        env:
+          BASE_DIR: ${{ steps.config.outputs.base_dir }}
+        run: |
+          set -euo pipefail
+
+          SOURCE="$(realpath source)"
+
+          if [[ -n "$BASE_DIR" ]]; then
+            PROJECT_DIR="$(realpath -e "source/$BASE_DIR")"
+          else
+            PROJECT_DIR="$SOURCE"
+          fi
+
+          case "$PROJECT_DIR/" in
+            "$SOURCE/"*) ;;
+            *)
+              echo "Invalid project directory"
+              exit 1
+              ;;
+          esac
+
+          if [[ ! -d "$PROJECT_DIR" ]]; then
+            echo "Project directory does not exist"
+            exit 1
+          fi
+
+          echo "project_dir=$PROJECT_DIR" >> "$GITHUB_OUTPUT"
+
+      - name: Install dependencies
+        shell: bash
+        env:
+          PROJECT_DIR: ${{ steps.project.outputs.project_dir }}
+          INSTALL_COMMAND: ${{ github.event.client_payload.install_command }}
+        run: |
+          set -euo pipefail
+          cd "$PROJECT_DIR"
+
+          bash -e -c "$INSTALL_COMMAND"
+
+      - name: Build project
+        shell: bash
+        env:
+          PROJECT_DIR: ${{ steps.project.outputs.project_dir }}
+          BUILD_COMMAND: ${{ github.event.client_payload.build_command }}
+        run: |
+          set -euo pipefail
+          cd "$PROJECT_DIR"
+
+          bash -e -c "$BUILD_COMMAND"
+
+      - name: Prepare build artifact
+        shell: bash
+        env:
+          PROJECT_DIR: ${{ steps.project.outputs.project_dir }}
+          OUTPUT_DIR: ${{ steps.config.outputs.output_dir }}
+        run: |
+          set -euo pipefail
+
+          OUTPUT_PATH="$(realpath -e "$PROJECT_DIR/$OUTPUT_DIR")"
+          PROJECT_REAL="$(realpath "$PROJECT_DIR")"
+
+          case "$OUTPUT_PATH/" in
+            "$PROJECT_REAL/"*) ;;
+            *)
+              echo "Output directory is outside project directory"
+              exit 1
+              ;;
+          esac
+
+          if [[ ! -d "$OUTPUT_PATH" ]]; then
+            echo "Build output directory not found"
+            exit 1
+          fi
+
+          if [[ ! -f "$OUTPUT_PATH/index.html" ]]; then
+            echo "index.html not found in build output"
+            exit 1
+          fi
+
+          mkdir -p "$GITHUB_WORKSPACE/artifact"
+
+          cp -a "$OUTPUT_PATH/." "$GITHUB_WORKSPACE/artifact/"
+
+          git -C source rev-parse HEAD \
+            > "$GITHUB_WORKSPACE/artifact/devploy_commit.txt"
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-output
+          path: artifact/
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 6
