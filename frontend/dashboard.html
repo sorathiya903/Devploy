@@ -354,6 +354,43 @@ display:none;
 ">
 </select>
 
+      <!-- Deployment type -->
+<label for="deployType" style="display:block;margin-bottom:8px;font-weight:600;">
+  Deployment Type
+</label>
+
+<select id="deployType"
+  onchange="toggleFrameworkSettings()"
+  style="width:100%;padding:14px;border:1px solid #dbe3f0;border-radius:12px;margin-bottom:15px;">
+  <option value="static">Static Deploy (Existing)</option>
+  <option value="framework">Framework Build (GitHub Actions)</option>
+</select>
+
+<div id="frameworkSettings" style="display:none;margin-bottom:18px;">
+
+  <p id="frameworkDetection"
+     style="font-size:13px;color:#6b7280;margin-bottom:12px;">
+    Select a repository to detect its framework.
+  </p>
+
+  <label>Install Command</label>
+  <input id="installCommand" value="npm install"
+         placeholder="npm install">
+
+  <label>Build Command</label>
+  <input id="buildCommand" value="npm run build"
+         placeholder="npm run build">
+
+  <label>Output Directory</label>
+  <input id="outputDir" value="dist"
+         placeholder="dist">
+
+  <small style="color:#6b7280;">
+    These settings determine how GitHub Actions builds your project
+    and which folder Devploy publishes.
+  </small>
+</div>
+
       <div class="form-group">
         <input type="text" id="baseDir" placeholder="Base Directory: frontend">
         <small>
@@ -386,6 +423,125 @@ Auto Deploy on GitHub Push
 
 
 <script>
+  function toggleFrameworkSettings(){
+
+  const type = document.getElementById("deployType").value;
+  const frameworkSettings = document.getElementById("frameworkSettings");
+  const autoDeploy = document.getElementById("autoDeploy");
+  const autoDeployLabel = document.getElementById("autoDeployLabel");
+
+  frameworkSettings.style.display =
+    type === "framework" ? "block" : "none";
+
+  autoDeploy.disabled = type === "framework";
+
+  autoDeployLabel.style.opacity =
+    type === "framework" ? "0.5" : "1";
+
+  if(type === "framework"){
+    autoDeploy.checked = false;
+  }
+}
+
+
+async function inspectSelectedRepo(){
+
+  const select = document.getElementById("repoSelect");
+  const option = select.options[select.selectedIndex];
+
+  if(!option) return;
+
+  const fullName = option.dataset.fullName;
+  const branch = option.dataset.branch;
+
+  const detection = document.getElementById("frameworkDetection");
+
+  detection.innerText = "Detecting project framework...";
+
+  try {
+
+    const url =
+      `https://raw.githubusercontent.com/${fullName}/${encodeURIComponent(branch)}/package.json`;
+
+    const res = await fetch(url);
+
+    if(!res.ok){
+      detection.innerText =
+        "No readable package.json found. You can still configure a framework build manually.";
+
+      return;
+    }
+
+    const pkg = await res.json();
+
+    const dependencies = {
+      ...(pkg.dependencies || {}),
+      ...(pkg.devDependencies || {})
+    };
+
+    const scripts = pkg.scripts || {};
+
+    let framework = "Unknown";
+    let output = "dist";
+
+    if(dependencies["vite"]){
+      framework = "Vite";
+      output = "dist";
+    }
+    else if(dependencies["react-scripts"]){
+      framework = "Create React App";
+      output = "build";
+    }
+    else if(dependencies["@angular/cli"]){
+      framework = "Angular";
+      output = "dist";
+    }
+    else if(dependencies["next"]){
+      framework = "Next.js";
+      output = "out";
+    }
+    else if(dependencies["vue"]){
+      framework = "Vue";
+      output = "dist";
+    }
+    else if(dependencies["svelte"] || dependencies["@sveltejs/kit"]){
+      framework = "Svelte";
+      output = "build";
+    }
+    else if(scripts.build){
+      framework = "JavaScript project";
+    }
+
+    document.getElementById("installCommand").value =
+      pkg.packageManager?.startsWith("pnpm") ? "pnpm install" :
+      pkg.packageManager?.startsWith("yarn") ? "yarn install" :
+      "npm install";
+
+    document.getElementById("buildCommand").value =
+      scripts.build ? "npm run build" : "";
+
+    document.getElementById("outputDir").value = output;
+
+    detection.innerText =
+      `Detected: ${framework}. Review the build settings before deploying.`;
+
+    // Suggest framework build when a build script exists.
+    if(scripts.build){
+      document.getElementById("deployType").value = "framework";
+    } else {
+      document.getElementById("deployType").value = "static";
+    }
+
+    toggleFrameworkSettings();
+
+  } catch(err){
+
+    console.error("Framework detection failed:", err);
+
+    detection.innerText =
+      "Could not detect framework. You can configure the build settings manually.";
+  }
+}
 const token = localStorage.getItem("token");
 
   
@@ -426,40 +582,41 @@ loadGithubRepos();
   
 async function loadGithubRepos(){
 
-const res = await fetch(
-`${API}/github/repos`,
-{
-headers:{
-Authorization:`Bearer ${token}`
+  const res = await fetch(`${API}/github/repos`, {
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  });
+
+  if(!res.ok) return;
+
+  const repos = await res.json();
+  const select = document.getElementById("repoSelect");
+
+  select.innerHTML = "";
+
+  repos.forEach(repo => {
+    const option = document.createElement("option");
+
+    option.value = repo.clone_url;
+    option.textContent = repo.full_name;
+
+    option.dataset.fullName = repo.full_name;
+    option.dataset.branch = repo.default_branch || "main";
+
+    select.appendChild(option);
+  });
+
+  select.style.display = "block";
+
+  document.getElementById("connectGithubBtn").style.display = "none";
+
+  select.onchange = inspectSelectedRepo;
+
+  if(repos.length){
+    await inspectSelectedRepo();
+  }
 }
-}
-);
-
-if(!res.ok){
-return;
-}
-
-const repos = await res.json();
-
-const select =
-document.getElementById("repoSelect");
-
-select.style.display = "block";
-
-select.innerHTML =
-repos.map(repo=>`
-<option
-value="${repo.clone_url}">
-${repo.full_name}
-</option>
-`).join("");
-
-document.getElementById(
-"connectGithubBtn"
-).style.display="none";
-
-}
-  
 function toggleMenu() {
   const m = document.getElementById("menu");
   m.style.display = (m.style.display === "block") ? "none" : "block";
@@ -516,59 +673,114 @@ console.log("data arrived ")
 
 
 /* ================= DEPLOY ================= */
-
 async function deploy() {
 
-  const projectName = document.getElementById("projectName").value.trim();
-  const repoUrl = document.getElementById("repoSelect").value.trim();
-  const baseDir = document.getElementById("baseDir").value.trim();
+  const projectName =
+    document.getElementById("projectName").value.trim();
+
+  const repoUrl =
+    document.getElementById("repoSelect").value.trim();
+
+  const baseDir =
+    document.getElementById("baseDir").value.trim();
+
+  const deployType =
+    document.getElementById("deployType").value;
 
   if(!projectName || !repoUrl){
-alert("Select repository or enter project name");
-return;
+    alert("Select a repository and enter a project name");
+    return;
   }
 
   const btn = document.getElementById("deployBtn");
+
   btn.disabled = true;
-  btn.innerText = "Deploying...";
+  btn.innerText = "Starting deployment...";
 
   try {
 
-    
+    let endpoint;
+    let body;
 
-    const res = await fetch("https://devploy.onrender.com/deploy", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${localStorage.getItem("token")}`
-      },
-      body: JSON.stringify({
+    if(deployType === "framework"){
+
+      const installCommand =
+        document.getElementById("installCommand").value.trim();
+
+      const buildCommand =
+        document.getElementById("buildCommand").value.trim();
+
+      const outputDir =
+        document.getElementById("outputDir").value.trim();
+
+      if(!installCommand || !buildCommand || !outputDir){
+        throw new Error("Fill in all framework build settings");
+      }
+
+      endpoint = `${API}/deploy/framework`;
+
+      body = {
         project_name: projectName,
         repo_url: repoUrl,
         base_dir: baseDir,
-       auto_deploy: document
-        .getElementById("autoDeploy")
-        .checked
-      })
+        install_command: installCommand,
+        build_command: buildCommand,
+        output_dir: outputDir
+      };
+
+    } else {
+
+      // Existing static deployment request — unchanged.
+      endpoint = `${API}/deploy`;
+
+      body = {
+        project_name: projectName,
+        repo_url: repoUrl,
+        base_dir: baseDir,
+        auto_deploy: document.getElementById("autoDeploy").checked
+      };
+    }
+
+    const res = await fetch(endpoint, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`
+      },
+      body: JSON.stringify(body)
     });
 
     const data = await res.json();
 
-    if (!res.ok) throw new Error(data.error || "Deploy failed");
+    if(!res.ok){
+      throw new Error(
+        data.detail || data.error || "Deployment failed"
+      );
+    }
 
-    connectLogs(data.project)
+    document.getElementById("result").style.display = "block";
+
+    document.getElementById("result").innerText =
+      deployType === "framework"
+        ? "Framework build started! Waiting for GitHub Actions..."
+        : "Static deployment started!";
+
+    connectLogs(data.project);
 
     loadProjects();
 
-  } catch (err) {
+  } catch(err) {
+
     alert(err.message);
+    console.error(err);
+
+  } finally {
+
+    btn.disabled = false;
+    btn.innerText = "Deploy Project";
+
   }
-
-  btn.disabled = false;
-  btn.innerText = "Deploy Project";
 }
-
-
 /* ================= AUTH + PROJECTS ================= */
 
 function openProject(project){
@@ -640,6 +852,7 @@ function logout() {
 getMe();
 loadProjects();
 checkGithub();
+  toggleFrameworkSettings()
 </script>
 
 </body>
