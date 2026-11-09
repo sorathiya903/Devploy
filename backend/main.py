@@ -180,16 +180,25 @@ async def push_log(project, message, status=None):
 @app.get("/b2-test")
 def b2_test():
     try:
-        response = s3_client.head_bucket(
-            Bucket=B2_BUCKET_NAME
+        response = s3_client.list_objects_v2(
+            Bucket=B2_BUCKET_NAME,
+            MaxKeys=1
         )
-        return {"success": True, "message": "B2 connected!"}
+
+        return {
+            "success": True,
+            "message": "Backblaze B2 connected!",
+            "bucket": B2_BUCKET_NAME,
+            "connection": "OK"
+        }
+
     except Exception as e:
+        print("B2 TEST ERROR:", repr(e))
+
         raise HTTPException(
             status_code=500,
             detail=f"B2 connection failed: {str(e)}"
         )
-        
 @app.websocket("/ws/deploy/{project_name}")
 async def deploy_ws(websocket: WebSocket, project_name: str):
 
