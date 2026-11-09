@@ -18,6 +18,8 @@ import traceback
 import os
 import asyncio
 import requests 
+import re
+from fastapi.responses import RedirectResponse
 
 # ==========================================
 # CONFIG
@@ -778,6 +780,11 @@ def deploy(
         .replace(" ", "-")
     )
 
+    if not re.fullmatch(r"[a-z0-9-]{1,50}", project_name):
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid project name"  )
+
     projects.update_one(
         {"name": project_name},
         {
@@ -788,7 +795,7 @@ def deploy(
                 "base_dir": data.base_dir,
                 "auto_deploy": data.auto_deploy,
                 "status": "queued",
-                "url": f"https://{project_name}.devploy.run.place"
+                 "url": f"https://devploy.netlify.app/{project_name}/"
             },
             "$setOnInsert": {
                 "logs": [],
@@ -1111,51 +1118,75 @@ def github_callback(
     """)
 
 
+
 @app.get("/{full_path:path}")
 def static_files(
     request: Request,
     full_path: str
 ):
+    # Extract project name from first URL segment
+    parts = full_path.split("/")
 
-    host = request.headers.get(
-        "host",
-        ""
+    project_name = parts[0].strip()
+
+    if not re.fullmatch(r"[a-z0-9-]{1,50}", project_name):
+        raise HTTPException(404, "Project not found")
+
+    # Ensure project exists
+    project = projects.find_one(
+        {"name": project_name},
+        {"_id": 0, "name": 1}
     )
-
-    project = get_project(host)
 
     if not project:
-        return JSONResponse(
-            {
-                "error": "Invalid host"
-            },
-            status_code=400
+        raise HTTPException(404, "Project not found")
+
+    # Resolve project directory safely
+    project_path = os.path.realpath(
+        os.path.join(PROJECTS_DIR, project_name)
+    )
+
+    if not os.path.isdir(project_path):
+        raise HTTPException(404, "Project files not found")
+
+    # Redirect /project-name to /project-name/
+    if len(parts) == 1 and not full_path.endswith("/"):
+        return RedirectResponse(
+            url=f"/{project_name}/",
+            status_code=307
         )
 
-    project_path = os.path.join(
-        PROJECTS_DIR,
-        project
+    # Determine requested file
+    relative_path = "/".join(parts[1:])
+
+    if not relative_path:
+        relative_path = "index.html"
+
+    file_path = os.path.realpath(
+        os.path.join(project_path, relative_path)
     )
 
-    file_path = os.path.join(
-        project_path,
-        full_path
-    )
+    # Prevent directory traversal
+    try:
+        if os.path.commonpath(
+            [project_path, file_path]
+        ) != project_path:
+            raise HTTPException(403, "Access denied")
+    except ValueError:
+        raise HTTPException(403, "Access denied")
 
-    if os.path.exists(file_path):
+    # Serve requested file
+    if os.path.isfile(file_path):
         return FileResponse(file_path)
 
-    index_file = os.path.join(
-        project_path,
-        "index.html"
-    )
+    # SPA fallback only for extensionless routes
+    if not os.path.splitext(relative_path)[1]:
+        index_file = os.path.join(
+            project_path,
+            "index.html"
+        )
 
-    if os.path.exists(index_file):
-        return FileResponse(index_file)
+        if os.path.isfile(index_file):
+            return FileResponse(index_file)
 
-    return JSONResponse(
-        {
-            "error": "Not found"
-        },
-        status_code=404
-    )
+    raise HTTPException(404, "File not found")
