@@ -117,6 +117,7 @@ jobs:
         env:
           PROJECT_DIR: ${{ steps.project.outputs.project_dir }}
           BUILD_COMMAND: ${{ github.event.client_payload.build_command }}
+          PUBLIC_URL: "."
         run: |
           set -euo pipefail
           cd "$PROJECT_DIR"
