@@ -20,11 +20,25 @@ import asyncio
 import requests 
 import re
 from fastapi.responses import RedirectResponse
-
+import boto3
+from botocore.config import Config
 # ==========================================
 # CONFIG
 # ==========================================
+B2_KEY_ID = os.getenv("B2_KEY_ID")
+B2_APPLICATION_KEY = os.getenv("B2_APPLICATION_KEY")
+B2_BUCKET_NAME = os.getenv("B2_BUCKET_NAME")
+B2_ENDPOINT = os.getenv("B2_ENDPOINT")
+B2_REGION = os.getenv("B2_REGION")
 
+s3_client = boto3.client(
+    "s3",
+    endpoint_url=B2_ENDPOINT,
+    aws_access_key_id=B2_KEY_ID,
+    aws_secret_access_key=B2_APPLICATION_KEY,
+    region_name=B2_REGION,
+    config=Config(signature_version="s3v4")
+)
 
 class DeployRequest(BaseModel):
     project_name: str
@@ -162,6 +176,20 @@ async def push_log(project, message, status=None):
     # safe websocket broadcast
     await manager.send(project, data)
 
+
+@app.get("/b2-test")
+def b2_test():
+    try:
+        response = s3_client.head_bucket(
+            Bucket=B2_BUCKET_NAME
+        )
+        return {"success": True, "message": "B2 connected!"}
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"B2 connection failed: {str(e)}"
+        )
+        
 @app.websocket("/ws/deploy/{project_name}")
 async def deploy_ws(websocket: WebSocket, project_name: str):
 
