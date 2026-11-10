@@ -339,6 +339,12 @@ jobs:
 
           find artifact -maxdepth 3 -type f
 
+
+      - name: Check original asset references
+        run: |
+          echo "========== ORIGINAL REFERENCES =========="
+          grep -RIn --exclude='*.map' '/source/assets' artifact/ || true
+   
       # 9. Upload artifact
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
