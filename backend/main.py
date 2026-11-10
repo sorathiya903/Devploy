@@ -186,9 +186,10 @@ def build_with_github_actions(
     build_command,
     install_command,
     output_dir,
+    project,
     commit_sha=None,
-    timeout=1200,
-    project
+    timeout=1200
+    
 ):
     owner = os.getenv("DEVPLOY_GITHUB_OWNER")
     repo = os.getenv("DEVPLOY_GITHUB_REPO")
