@@ -1,218 +1,802 @@
-<!DOCTYPE html><html lang="en">
+<!DOCTYPE html>
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  
-  <title>Devploy Authentication</title>
-  
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  
-  <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
+<meta name="theme-color" content="#000000">
+
+<title>Devployz — Authentication</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<script src="https://cdn.jsdelivr.net/npm/eruda"></script>
+
+<script>
+if(
+  location.hostname === "localhost" ||
+  location.hostname.includes("127.0.0.1") ||
+  location.hostname.includes("netlify") ||
+  localStorage.getItem("debug") === "true"
+){
+  eruda.init();
+}
+</script>
+
+<style>
+
+/* =====================================
+   THEME VARIABLES
+===================================== */
+
+:root {
+  color-scheme: dark;
+
+  --bg: #000000;
+  --surface: #0b0b0b;
+  --card: #0d0d0d;
+  --elevated: #141414;
+  --hover: #1b1b1b;
+
+  --border: #292929;
+  --border-soft: #1d1d1d;
+
+  --text: #ffffff;
+  --secondary: #a3a3a3;
+  --muted: #737373;
+
+  --button-bg: #ffffff;
+  --button-text: #000000;
+
+  --input-bg: #080808;
+  --input-border: #303030;
+
+  --error-bg: #241313;
+  --error-text: #ffb3b3;
+
+  --success-bg: #171717;
+  --success-text: #e2e2e2;
+
+  --shadow: rgba(0,0,0,.45);
+}
+
+html[data-theme="light"] {
+  color-scheme: light;
+
+  --bg: #f5f5f5;
+  --surface: #ffffff;
+  --card: #ffffff;
+  --elevated: #f0f0f0;
+  --hover: #e8e8e8;
+
+  --border: #dedede;
+  --border-soft: #ebebeb;
+
+  --text: #111111;
+  --secondary: #555555;
+  --muted: #777777;
+
+  --button-bg: #111111;
+  --button-text: #ffffff;
+
+  --input-bg: #fafafa;
+  --input-border: #d7d7d7;
+
+  --error-bg: #f8eaea;
+  --error-text: #a52a2a;
+
+  --success-bg: #ededed;
+  --success-text: #222222;
+
+  --shadow: rgba(0,0,0,.07);
+}
+
+/* =====================================
+   RESET
+===================================== */
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  min-height: 100%;
+}
+
+body {
+  min-height: 100vh;
+  min-height: 100dvh;
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  padding: 25px;
+
+  background: var(--bg);
+  color: var(--text);
+
+  font-family: 'Geist', sans-serif;
+
+  transition:
+    background .25s ease,
+    color .25s ease;
+
+  -webkit-font-smoothing: antialiased;
+}
+
+/* =====================================
+   BACKGROUND
+===================================== */
+
+.background-grid {
+  position: fixed;
+  inset: 0;
+
+  pointer-events: none;
+
+  background-image:
+    linear-gradient(
+      rgba(128,128,128,.035) 1px,
+      transparent 1px
+    ),
+    linear-gradient(
+      90deg,
+      rgba(128,128,128,.035) 1px,
+      transparent 1px
+    );
+
+  background-size: 45px 45px;
+
+  mask-image:
+    linear-gradient(
+      to bottom,
+      black,
+      transparent 85%
+    );
+}
+
+/* =====================================
+   THEME TOGGLE
+===================================== */
+
+.theme-toggle {
+  position: fixed;
+  top: 24px;
+  right: 25px;
+
+  width: 43px;
+  height: 43px;
+
+  display: grid;
+  place-items: center;
+
+  border: 1px solid var(--border);
+  border-radius: 12px;
+
+  background: var(--card);
+  color: var(--text);
+
+  cursor: pointer;
+
+  font-size: 19px;
+
+  transition:
+    background .2s,
+    border-color .2s,
+    transform .2s;
+}
+
+.theme-toggle:hover {
+  background: var(--hover);
+  transform: translateY(-2px);
+}
+
+.theme-toggle:focus-visible {
+  outline: 2px solid var(--text);
+  outline-offset: 4px;
+}
+
+/* =====================================
+   MAIN CARD
+===================================== */
+
+.card {
+  position: relative;
+  z-index: 1;
+
+  width: 100%;
+  max-width: 430px;
+
+  padding: 37px;
+
+  background: var(--card);
+
+  border: 1px solid var(--border);
+
+  box-shadow:
+    0 25px 90px var(--shadow);
+
+  transition:
+    background .25s,
+    border-color .25s;
+}
+
+/* =====================================
+   BRAND
+===================================== */
+
+.brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
+  margin-bottom: 32px;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  font-size: 27px;
+  font-weight: 700;
+  letter-spacing: -1.2px;
+
+  color: var(--text);
+}
+
+.logo-symbol {
+  width: 37px;
+  height: 37px;
+
+  display: grid;
+  place-items: center;
+
+  border: 1px solid var(--border);
+  background: var(--elevated);
+
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 17px;
+}
+
+.subtitle {
+  margin-top: 12px;
+
+  color: var(--muted);
+
+  font-size: 13px;
+  text-align: center;
+  line-height: 1.7;
+}
+
+.brand-label {
+  margin-top: 17px;
+
+  color: var(--muted);
+
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 1.5px;
+}
+
+/* =====================================
+   TABS
+===================================== */
+
+.tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+
+  gap: 5px;
+
+  padding: 5px;
+
+  margin-bottom: 27px;
+
+  background: var(--surface);
+  border: 1px solid var(--border);
+}
+
+.tab {
+  padding: 12px;
+
+  border: 0;
+
+  background: transparent;
+  color: var(--muted);
+
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+
+  cursor: pointer;
+
+  transition:
+    background .2s,
+    color .2s;
+}
+
+.tab:hover {
+  color: var(--text);
+}
+
+.tab.active {
+  background: var(--elevated);
+  color: var(--text);
+
+  outline: 1px solid var(--border);
+}
+
+/* =====================================
+   FORMS
+===================================== */
+
+.form {
+  display: none;
+}
+
+.form.active {
+  display: block;
+  animation: formEnter .3s ease;
+}
+
+@keyframes formEnter {
+  from {
+    opacity: 0;
+    transform: translateY(7px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+label {
+  display: block;
+
+  margin-bottom: 8px;
+
+  color: var(--secondary);
+
+  font-size: 12px;
+  font-weight: 600;
+}
+
+input {
+  width: 100%;
+  height: 48px;
+
+  padding: 0 14px;
+
+  margin-bottom: 19px;
+
+  border: 1px solid var(--input-border);
+
+  background: var(--input-bg);
+  color: var(--text);
+
+  border-radius: 0;
+
+  font-family: inherit;
+  font-size: 13px;
+
+  outline: none;
+
+  transition:
+    border-color .2s,
+    background .2s,
+    box-shadow .2s;
+}
+
+input::placeholder {
+  color: var(--muted);
+}
+
+input:focus {
+  border-color: var(--text);
+  box-shadow: 0 0 0 2px rgba(128,128,128,.13);
+}
+
+/* =====================================
+   SUBMIT BUTTON
+===================================== */
+
+.btn {
+  width: 100%;
+  height: 49px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+
+  border: 1px solid var(--button-bg);
+
+  background: var(--button-bg);
+  color: var(--button-text);
+
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+
+  cursor: pointer;
+
+  transition:
+    transform .2s,
+    opacity .2s;
+}
+
+.btn:hover {
+  opacity: .88;
+  transform: translateY(-2px);
+}
+
+.btn:active {
+  transform: translateY(0);
+}
+
+.btn:focus-visible {
+  outline: 2px solid var(--text);
+  outline-offset: 4px;
+}
+
+/* =====================================
+   MESSAGES
+===================================== */
+
+.message {
+  display: none;
+
+  padding: 13px 14px;
+
+  margin-bottom: 19px;
+
+  border: 1px solid var(--border);
+
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.error {
+  background: var(--error-bg);
+  color: var(--error-text);
+}
+
+.success {
+  background: var(--success-bg);
+  color: var(--success-text);
+}
+
+/* =====================================
+   EXTRA TEXT
+===================================== */
+
+.small {
+  margin-top: 17px;
+
+  color: var(--muted);
+
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+
+  text-align: center;
+}
+
+.card-footer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+
+  margin-top: 30px;
+  padding-top: 20px;
+
+  border-top: 1px solid var(--border-soft);
+
+  color: var(--muted);
+
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  letter-spacing: .5px;
+}
+
+.footer-dot {
+  width: 5px;
+  height: 5px;
+
+  background: var(--secondary);
+  border-radius: 50%;
+}
+
+/* =====================================
+   LOADING
+===================================== */
+
+.loading {
+  opacity: .6;
+  pointer-events: none;
+}
+
+/* =====================================
+   RESPONSIVE
+===================================== */
+
+@media(max-width: 500px) {
+
+  body {
+    padding: 18px;
+    align-items: center;
+  }
+
+  .card {
+    padding: 27px 21px;
+  }
+
+  .theme-toggle {
+    top: 15px;
+    right: 15px;
+  }
+
+  .logo {
+    font-size: 25px;
+  }
+
+}
+
+@media(prefers-reduced-motion: reduce) {
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: .01ms !important;
+    transition-duration: .01ms !important;
+  }
+
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="background-grid"></div>
+
+<!-- THEME TOGGLE -->
+
+<button
+  class="theme-toggle"
+  id="themeToggle"
+  type="button"
+  aria-label="Switch to light theme"
+  title="Toggle theme"
+>
+  <button aria-label="Toggle theme" style="background: none; border: none; cursor: pointer; padding: 4px;">
+  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="12" r="4"></circle>
+    <path d="M12 2v2"></path>
+    <path d="M12 20v2"></path>
+    <path d="m4.93 4.93 1.41 1.41"></path>
+    <path d="m17.66 17.66 1.41 1.41"></path>
+    <path d="M2 12h2"></path>
+    <path d="M20 12h2"></path>
+    <path d="m6.34 17.66-1.41 1.41"></path>
+    <path d="m19.07 4.93-1.41 1.41"></path>
+  </svg>
+</button>
+
+</button>
+
+
+<!-- AUTH CARD -->
+
+<div class="card">
+
+  <div class="brand">
+
+    <div class="logo">
+      <span class="logo-symbol">D.</span>
+      <span>devployz</span>
+    </div>
+
+    <div class="subtitle">
+      Deploy your ideas. Not your time.
+    </div>
+
+    <div class="brand-label">
+      DEVELOPER DEPLOYMENT PLATFORM
+    </div>
+
+  </div>
+
+
+  <!-- TABS -->
+
+  <div class="tabs">
+
+    <button
+      class="tab active"
+      onclick="switchTab('login')"
+      type="button"
+    >
+      Login
+    </button>
+
+    <button
+      class="tab"
+      onclick="switchTab('register')"
+      type="button"
+    >
+      Register
+    </button>
+
+  </div>
+
+
+  <div id="msg" class="message"></div>
+
+
+  <!-- LOGIN -->
+
+  <form id="loginForm" class="form active">
+
+    <label for="loginUser">Username</label>
+
+    <input
+      type="text"
+      id="loginUser"
+      placeholder="Enter username"
+      autocomplete="username"
+    >
+
+    <label for="loginPass">Password</label>
+
+    <input
+      type="password"
+      id="loginPass"
+      placeholder="Enter password"
+      autocomplete="current-password"
+    >
+
+    <button class="btn" type="submit">
+      Login <span>↗</span>
+    </button>
+
+  </form>
+
+
+  <!-- REGISTER -->
+
+  <form id="registerForm" class="form">
+
+    <label for="regUser">Username</label>
+
+    <input
+      type="text"
+      id="regUser"
+      placeholder="Choose username"
+      autocomplete="username"
+    >
+
+    <label for="regPass">Password</label>
+
+    <input
+      type="password"
+      id="regPass"
+      placeholder="Create password"
+      autocomplete="new-password"
+    >
+
+    <label for="regPass2">Confirm Password</label>
+
+    <input
+      type="password"
+      id="regPass2"
+      placeholder="Confirm password"
+      autocomplete="new-password"
+    >
+
+    <button class="btn" type="submit">
+      Create Account <span>↗</span>
+    </button>
+
+    <div class="small">
+      MINIMUM 6 CHARACTER PASSWORD
+    </div>
+
+  </form>
+
+
+  <div class="card-footer">
+    <span class="footer-dot"></span>
+    SIMPLE. SECURE. READY TO DEPLOY.
+  </div>
+
+</div>
+
+
+<!-- THEME MANAGEMENT
+     Separate from existing authentication JS.
+-->
 
 <script>
 
-if(
-  location.hostname === "localhost" ||
+(function () {
 
-  location.hostname.includes("127.0.0.1") ||
+  const html = document.documentElement;
+  const toggle = document.getElementById("themeToggle");
 
-  location.hostname.includes("netlify") ||
+  // Restore saved theme.
+  // Dark is the default.
 
-  localStorage.getItem("debug") === "true"
-){
+  const savedTheme = localStorage.getItem("devployz-theme");
 
-  eruda.init();
+  function applyTheme(theme) {
 
-}
+    html.setAttribute("data-theme", theme);
+
+    localStorage.setItem("devployz-theme", theme);
+
+    if (theme === "light") {
+
+      toggle.textContent = "☾";
+
+      toggle.setAttribute(
+        "aria-label",
+        "Switch to dark theme"
+      );
+
+    } else {
+
+      toggle.textContent = "☀";
+
+      toggle.setAttribute(
+        "aria-label",
+        "Switch to light theme"
+      );
+
+    }
+
+    document
+      .querySelector('meta[name="theme-color"]')
+      .setAttribute(
+        "content",
+        theme === "light" ? "#f5f5f5" : "#000000"
+      );
+
+  }
+
+  applyTheme(
+    savedTheme === "light" ? "light" : "dark"
+  );
+
+  toggle.addEventListener("click", function () {
+
+    const currentTheme =
+      html.getAttribute("data-theme");
+
+    const newTheme =
+      currentTheme === "dark" ? "light" : "dark";
+
+    applyTheme(newTheme);
+
+  });
+
+})();
 
 </script>
-  <style>
 
-*{
-margin:0;
-padding:0;
-box-sizing:border-box;
-font-family:Inter,sans-serif;
-}
 
-body{
-background:#f4f8ff;
-min-height:100vh;
-display:flex;
-justify-content:center;
-align-items:center;
-padding:20px;
-}
+<!-- ORIGINAL AUTHENTICATION JAVASCRIPT
+     PRESERVED WITHOUT CHANGES
+-->
 
-.card{
-width:100%;
-max-width:420px;
-background:white;
-border-radius:20px;
-padding:30px;
-box-shadow:0 10px 30px rgba(0,0,0,.08);
-}
-
-.logo{
-font-size:32px;
-font-weight:700;
-color:#2563eb;
-text-align:center;
-margin-bottom:10px;
-}
-
-.subtitle{
-text-align:center;
-color:#6b7280;
-margin-bottom:25px;
-}
-
-.tabs{
-display:flex;
-gap:10px;
-margin-bottom:20px;
-}
-
-.tab{
-flex:1;
-padding:12px;
-border:none;
-border-radius:12px;
-background:#eef4ff;
-cursor:pointer;
-font-weight:600;
-}
-
-.tab.active{
-background:#2563eb;
-color:white;
-}
-
-.form{
-display:none;
-}
-
-.form.active{
-display:block;
-}
-
-label{
-display:block;
-margin-bottom:6px;
-font-size:14px;
-font-weight:600;
-}
-
-input{
-width:100%;
-padding:13px;
-border:1px solid #dbe3f0;
-border-radius:12px;
-margin-bottom:15px;
-outline:none;
-font-size:15px;
-}
-
-input:focus{
-border-color:#2563eb;
-}
-
-.btn{
-width:100%;
-padding:14px;
-border:none;
-border-radius:12px;
-background:#2563eb;
-color:white;
-font-weight:600;
-cursor:pointer;
-}
-
-.btn:hover{
-opacity:.95;
-}
-
-.message{
-display:none;
-padding:12px;
-border-radius:12px;
-margin-bottom:15px;
-font-size:14px;
-}
-
-.error{
-background:#ffe6e6;
-color:#d60000;
-}
-
-.success{
-background:#e6fff0;
-color:#008a3b;
-}
-
-.loading{
-opacity:.6;
-pointer-events:none;
-}
-
-.small{
-font-size:13px;
-color:#6b7280;
-margin-top:8px;
-text-align:center;
-}
-
-</style></head>
-<body><div class="card"><div class="logo">Devploy</div><div class="subtitle">
-Deploy static sites instantly
-</div><div class="tabs">
-<button class="tab active" onclick="switchTab('login')">
-Login
-</button><button class="tab" onclick="switchTab('register')">
-Register
-</button>
-</div><div id="msg" class="message"></div><!-- LOGIN --><form id="loginForm" class="form active"><label>Username</label>
-
-<input
-type="text"
-id="loginUser"
-placeholder="Enter username">
-
-<label>Password</label>
-
-<input
-type="password"
-id="loginPass"
-placeholder="Enter password">
-
-<button class="btn">
-Login
-</button></form><!-- REGISTER --><form id="registerForm" class="form"><label>Username</label>
-
-<input
-type="text"
-id="regUser"
-placeholder="Choose username">
-
-<label>Password</label>
-
-<input
-type="password"
-id="regPass"
-placeholder="Create password">
-
-<label>Confirm Password</label>
-
-<input
-type="password"
-id="regPass2"
-placeholder="Confirm password">
-
-<button class="btn">
-Create Account
-</button><div class="small">
-Minimum 6 character password
-</div></form></div><script>
+<script>
 
 const API =
 "https://devploy.onrender.com";
@@ -466,5 +1050,7 @@ showMessage(
 
 });
 
-</script></body>
-  </html>
+</script>
+
+</body>
+</html>
