@@ -423,6 +423,31 @@ Auto Deploy on GitHub Push
 
 
 <script>
+
+  async function deleteProject(projectName) {
+
+    const response = await fetch(
+        `${API_URL}/project/${encodeURIComponent(projectName)}`,
+        {
+            method: "DELETE",
+            headers: {
+                "Authorization": `Bearer ${token}`
+            }
+        }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+        throw new Error(
+            data.detail || "Failed to delete project"
+        );
+    }
+
+    return data;
+}
+
+  
   function toggleFrameworkSettings(){
 
   const type = document.getElementById("deployType").value;
