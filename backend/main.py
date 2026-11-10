@@ -441,10 +441,7 @@ def framework_deploy_worker(
             )
 
             result = projects.update_one(
-                {
-                    "name": project_name,
-                    "owner": username
-                },
+             {   "name": project_name,    "owner": username,    "deleting": {"$ne": True}},
                 {
                     "$set": {
                         "active_deployment_id": deployment_id,
@@ -1165,7 +1162,7 @@ def deploy_commit_worker(
             result = projects.update_one(
                 {
                     "name": project_name,
-                    "owner": username
+                    "owner": username,   "deleting": {"$ne": True}
                 },
                 {
                     "$set": {
@@ -1341,7 +1338,7 @@ def deploy_worker(project_name, repo_url, base_dir, username):
             result = projects.update_one(
                 {
                     "name": project_name,
-                    "owner": username
+                    "owner": username,   "deleting": {"$ne": True}
                 },
                 {
                     "$set": {
