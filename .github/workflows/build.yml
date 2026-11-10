@@ -160,6 +160,15 @@ jobs:
           git -C source rev-parse HEAD \
             > "$GITHUB_WORKSPACE/artifact/devploy_commit.txt"
 
+
+      - name: Debug build output
+        run: |
+          echo "OUTPUT_DIR: $OUTPUT_DIR"
+          echo "PROJECT_DIR: $PROJECT_DIR"
+          echo "Available directories:"
+          find "$PROJECT_DIR" -maxdepth 3 -type d \
+            -not -path '*/node_modules*'
+
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
