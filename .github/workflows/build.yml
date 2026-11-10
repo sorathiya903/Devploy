@@ -311,7 +311,7 @@ jobs:
 
           echo "========== PATH REWRITING =========="
 
-          python scripts/rewrite_paths.py \
+          python scripts/rewrite_path.py \
             artifact \
             "$PROJECT_NAME"
 
