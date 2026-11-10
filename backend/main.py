@@ -187,7 +187,8 @@ def build_with_github_actions(
     install_command,
     output_dir,
     commit_sha=None,
-    timeout=1200
+    timeout=1200,
+    project
 ):
     owner = os.getenv("DEVPLOY_GITHUB_OWNER")
     repo = os.getenv("DEVPLOY_GITHUB_REPO")
@@ -226,7 +227,8 @@ def build_with_github_actions(
                 "commit_sha": commit_sha or "",
                 "build_command": build_command,
                 "install_command": install_command,
-                "output_dir": output_dir
+                "output_dir": output_dir,
+                "project_name":project
             }
         },
         timeout=20
@@ -412,6 +414,7 @@ def framework_deploy_worker(
                 build_command=build_command,
                 install_command=install_command,
                 output_dir=output_dir
+                project=project_name
             )
 
             await push_log(
