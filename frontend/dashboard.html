@@ -861,15 +861,10 @@ async function deploy() {
 }
 /* ================= AUTH + PROJECTS ================= */
 
-function openProject(project){
-
-    localStorage.setItem(
-        "selectedProject",
-        project
-    );
-
+function openProject(p){
+    
     location.href =
-        "project.html";
+        `project.html?project=${p}`;
 }
 
 if (!token) location.href = "auth.html";
