@@ -1,440 +1,849 @@
-<!DOCTYPE html><html lang="en">
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-  <title>Devploy Dashboard</title>
-  
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
+<title>Devploy Dashboard</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+<script src="https://cdn.jsdelivr.net/npm/eruda"></script>
 
 <script>
-
 if(
   location.hostname === "localhost" ||
-
   location.hostname.includes("127.0.0.1") ||
-
   location.hostname.includes("netlify") ||
-
   localStorage.getItem("debug") === "true"
 ){
-
   eruda.init();
-
 }
-
 </script>
-  <style>
 
-    .delete-btn{
-  width:100%;
-  margin-top:12px;
-  padding:11px;
-  border:1px solid #fecaca;
-  background:#fef2f2;
-  color:#dc2626;
-  border-radius:10px;
-  font-weight:600;
-  cursor:pointer;
-  transition:.2s;
+<style>
+:root {
+  color-scheme: dark;
+
+  --bg: #090909;
+  --surface: #111111;
+  --surface-2: #171717;
+  --surface-3: #1d1d1d;
+  --input: #101010;
+
+  --text: #f5f5f5;
+  --muted: #999999;
+  --subtle: #707070;
+
+  --border: #292929;
+  --border-strong: #383838;
+
+  --button: #f5f5f5;
+  --button-text: #080808;
+
+  --success-bg: #142019;
+  --success-text: #a5d6b5;
+
+  --danger-bg: #281515;
+  --danger-text: #ff9d9d;
+
+  --log-bg: #171717;
+
+  --shadow: 0 15px 50px rgba(0,0,0,.2);
 }
 
-.delete-btn:hover{
-  background:#fee2e2;
+html[data-theme="light"] {
+  color-scheme: light;
+
+  --bg: #f5f5f5;
+  --surface: #ffffff;
+  --surface-2: #f8f8f8;
+  --surface-3: #eeeeee;
+  --input: #ffffff;
+
+  --text: #111111;
+  --muted: #666666;
+  --subtle: #888888;
+
+  --border: #e5e5e5;
+  --border-strong: #d4d4d4;
+
+  --button: #111111;
+  --button-text: #ffffff;
+
+  --success-bg: #e8f3eb;
+  --success-text: #27623c;
+
+  --danger-bg: #fff0f0;
+  --danger-text: #c62828;
+
+  --log-bg: #f0f0f0;
+
+  --shadow: 0 15px 50px rgba(0,0,0,.05);
 }
 
-.delete-btn:disabled{
-  opacity:.5;
-  cursor:not-allowed;
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: Inter, sans-serif;
 }
 
-*{
-margin:0;
-padding:0;
-box-sizing:border-box;
-font-family:Inter,sans-serif;
+html {
+  scroll-behavior: smooth;
 }
 
-body{
-background:#f5f9ff;
-color:#111827;
+body {
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--text);
+  transition: background .2s, color .2s;
 }
 
-header{
-background:white;
-padding:18px 30px;
-display:flex;
-justify-content:space-between;
-align-items:center;
-box-shadow:0 2px 10px rgba(0,0,0,.05);
-position:sticky;
-top:0;
-z-index:100;
+button, input, select {
+  font: inherit;
 }
 
-.logo{
-font-size:28px;
-font-weight:700;
-color:#2563eb;
+button {
+  -webkit-tap-highlight-color: transparent;
 }
 
-.right{
-display:flex;
-gap:12px;
-align-items:center;
+header {
+  height: 76px;
+  padding: 0 5%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 100;
 }
 
-.username{
-font-weight:600;
+.logo {
+  font-size: 23px;
+  font-weight: 800;
+  letter-spacing: -1.2px;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
-.logout{
-border:none;
-background:#ef4444;
-color:white;
-padding:10px 16px;
-border-radius:10px;
-cursor:pointer;
+.logo-mark {
+  width: 31px;
+  height: 31px;
+  display: grid;
+  place-items: center;
+  border-radius: 9px;
+  background: var(--button);
+  color: var(--button-text);
+  font-size: 17px;
+  font-weight: 800;
 }
 
-.container{
-max-width:1200px;
-margin:auto;
-padding:30px 20px;
+.right {
+  display: flex;
+  align-items: center;
+  gap: 13px;
 }
 
-.hero{
-background:white;
-padding:25px;
-border-radius:18px;
-margin-bottom:25px;
-box-shadow:0 5px 20px rgba(0,0,0,.05);
+.username {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.hero h2{
-margin-bottom:8px;
+.theme-toggle,
+.more-btn {
+  width: 38px;
+  height: 38px;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--text);
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 17px;
+  display: grid;
+  place-items: center;
+  transition: .2s;
 }
 
-.hero p{
-color:#6b7280;
+.theme-toggle:hover,
+.more-btn:hover {
+  background: var(--surface-3);
+  border-color: var(--border-strong);
 }
 
-.deploy-box{
-background:white;
-padding:25px;
-border-radius:18px;
-box-shadow:0 5px 20px rgba(0,0,0,.05);
-margin-bottom:25px;
+.menu-wrap {
+  position: relative;
 }
 
-.deploy-box h3{
-margin-bottom:15px;
+#menu {
+  display: none;
+  position: absolute;
+  right: 0;
+  top: 49px;
+  min-width: 190px;
+  padding: 7px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+  z-index: 200;
 }
 
-input{
-width:100%;
-padding:14px;
-border:1px solid #dbe3f0;
-border-radius:12px;
-margin-bottom:15px;
-outline:none;
+#menu button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 11px 12px;
+  background: transparent;
+  color: var(--text);
+  border: none;
+  border-radius: 7px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background .15s;
 }
 
-input:focus{
-border-color:#2563eb;
+#menu button:hover {
+  background: var(--surface-3) !important;
 }
 
-.deploy-btn{
-background:#2563eb;
-color:white;
-border:none;
-padding:14px;
-width:100%;
-border-radius:12px;
-font-weight:600;
-cursor:pointer;
+#menu hr {
+  border: 0;
+  height: 1px;
+  background: var(--border) !important;
+  margin: 6px 4px;
 }
 
-.deploy-btn:disabled{
-opacity:.6;
-cursor:not-allowed;
+#menu button:last-child {
+  color: var(--danger-text) !important;
 }
 
-.result{
-margin-top:15px;
-display:none;
-padding:14px;
-border-radius:12px;
-background:#eaf3ff;
-word-break:break-all;
+.container {
+  width: min(1160px, 92%);
+  margin: auto;
+  padding: 42px 0 80px;
 }
 
-.section-title{
-font-size:22px;
-font-weight:700;
-margin-bottom:20px;
+/* PAGE INTRO */
+
+.page-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 20px;
+  margin-bottom: 30px;
 }
 
-.empty{
-background:white;
-padding:40px;
-border-radius:18px;
-text-align:center;
-box-shadow:0 5px 20px rgba(0,0,0,.05);
+.eyebrow {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin-bottom: 12px;
 }
 
-.empty h3{
-margin-bottom:8px;
+.page-heading h1 {
+  font-size: clamp(27px, 4vw, 38px);
+  letter-spacing: -1.8px;
+  line-height: 1.15;
+  margin-bottom: 9px;
 }
 
-.empty p{
-color:#6b7280;
+.page-heading p {
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.6;
 }
 
-.grid{
-display:grid;
-grid-template-columns:repeat(auto-fill,minmax(300px,1fr));
-gap:20px;
+.primary-action {
+  background: var(--button);
+  color: var(--button-text);
+  border: 1px solid var(--button);
+  border-radius: 10px;
+  padding: 13px 18px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: .2s;
 }
 
-.card{
-background:white;
-padding:20px;
-border-radius:18px;
-box-shadow:0 5px 20px rgba(0,0,0,.05);
+.primary-action:hover {
+  opacity: .85;
+  transform: translateY(-1px);
 }
 
-.card h3{
-margin-bottom:10px;
+/* SECTION HEADINGS */
+
+.section-title {
+  font-size: 19px;
+  font-weight: 700;
+  letter-spacing: -.5px;
+  margin-bottom: 17px;
 }
 
-.meta{
-font-size:14px;
-color:#6b7280;
-margin-bottom:8px;
+/* PROJECTS */
+
+#projectsContainer {
+  min-height: 100px;
 }
 
-.actions{
-display:flex;
-gap:10px;
-margin-top:15px;
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
+  gap: 15px;
 }
 
-.open{
-flex:1;
-text-decoration:none;
-background:#2563eb;
-color:white;
-padding:10px;
-text-align:center;
-border-radius:10px;
+.card {
+  position: relative;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 21px;
+  min-width: 0;
+  transition: border-color .2s, transform .2s, background .2s;
+  cursor: pointer;
 }
 
-.copy{
-flex:1;
-border:none;
-background:#e5e7eb;
-padding:10px;
-border-radius:10px;
-cursor:pointer;
+.card:hover {
+  border-color: var(--border-strong);
+  transform: translateY(-3px);
 }
 
-    .log-line{
-  background:#f3f4f6;
-  color:#111827;
-  padding:10px;
-  margin:6px 0;
-  border-radius:10px;
-  font-weight:600;
-  border-left:4px solid red
+.card h3 {
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: -.3px;
+  margin-bottom: 15px;
+  overflow-wrap: anywhere;
+}
+
+.meta {
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--muted);
+  margin-bottom: 7px;
+  overflow-wrap: anywhere;
+}
+
+.meta:last-of-type {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 11px;
+  padding: 9px 10px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+}
+
+.delete-btn {
+  width: 100%;
+  margin-top: 16px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--danger-text);
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: .2s;
+}
+
+.delete-btn:hover {
+  background: var(--danger-bg);
+  border-color: var(--danger-text);
+}
+
+.delete-btn:disabled {
+  opacity: .5;
+  cursor: not-allowed;
+}
+
+.empty {
+  background: var(--surface);
+  border: 1px dashed var(--border-strong);
+  padding: 65px 20px;
+  border-radius: 15px;
+  text-align: center;
+}
+
+.empty-icon {
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  margin: 0 auto 17px;
+  border-radius: 13px;
+  background: var(--surface-3);
+  font-size: 21px;
+}
+
+.empty h3 {
+  font-size: 17px;
+  margin-bottom: 9px;
+}
+
+.empty p {
+  color: var(--muted);
+  font-size: 13px;
+  margin-bottom: 20px;
+}
+
+/* CREATE PROJECT */
+
+.deploy-box {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 15px;
+  padding: 27px;
+  margin-bottom: 23px;
+}
+
+.form-heading {
+  margin-bottom: 25px;
+}
+
+.form-heading h2 {
+  font-size: 21px;
+  letter-spacing: -.7px;
+  margin-bottom: 8px;
+}
+
+.form-heading p {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.form-section {
+  padding: 20px 0;
+  border-top: 1px solid var(--border);
+}
+
+.form-section:first-of-type {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.form-section-title {
+  font-size: 13px;
+  font-weight: 700;
+  margin-bottom: 14px;
+}
+
+.field-label,
+label {
+  display: block;
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 9px;
+}
+
+input:not([type="checkbox"]),
+select {
+  width: 100%;
+  padding: 13px 14px;
+  margin-bottom: 15px;
+  color: var(--text);
+  background: var(--input);
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  outline: none;
+  font-size: 13px;
+  transition: border-color .2s, box-shadow .2s;
+}
+
+input::placeholder {
+  color: var(--subtle);
+}
+
+input:focus,
+select:focus {
+  border-color: var(--muted);
+  box-shadow: 0 0 0 3px rgba(128,128,128,.12);
+}
+
+select option {
+  background: var(--surface);
+  color: var(--text);
+}
+
+.form-group small,
+#frameworkSettings small {
+  display: block;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.6;
+  margin-top: -8px;
+  margin-bottom: 12px;
+}
+
+.deploy-btn {
+  width: 100%;
+  padding: 14px 18px;
+  border-radius: 9px;
+  border: 1px solid var(--button);
+  background: var(--button);
+  color: var(--button-text);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: .2s;
+}
+
+.deploy-btn:hover {
+  opacity: .85;
+}
+
+.deploy-btn:disabled {
+  opacity: .5;
+  cursor: not-allowed;
+}
+
+#connectGithubBtn {
+  margin-bottom: 17px;
+}
+
+#repoSelect {
+  margin-top: 0;
+}
+
+#frameworkSettings {
+  padding: 17px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+#frameworkDetection {
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.6;
+  padding: 10px 12px;
+  background: var(--surface-3);
+  border-radius: 7px;
+  margin-bottom: 16px;
+}
+
+#autoDeployLabel {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  margin: 4px 0 20px;
+  cursor: pointer;
+}
+
+#autoDeploy {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--text);
+  cursor: pointer;
+}
+
+.result {
+  display: none;
+  margin-top: 17px;
+  padding: 14px;
+  border-radius: 9px;
+  background: var(--success-bg);
+  color: var(--success-text);
+  border: 1px solid var(--border);
+  font-size: 13px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+/* DEPLOYMENT LOGS */
+
+#logBox {
+  display: none;
+  margin-top: 22px;
+  padding: 22px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 13px;
+}
+
+#logBox h3 {
+  font-size: 15px;
+  margin-bottom: 15px;
+}
+
+#logs {
+  max-height: 350px;
+  overflow-y: auto;
+}
+
+.log-line,
+#logs > div {
+  background: var(--log-bg);
+  color: var(--text);
+  padding: 12px 14px;
+  margin: 7px 0;
+  border-radius: 7px;
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--muted) !important;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+}
+
+/* SMALL LABELS */
+
+.form-hint {
+  color: var(--muted);
+  font-size: 11px;
+  margin-top: 8px;
+  line-height: 1.6;
+}
+
+/* ACCESSIBILITY */
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible {
+  outline: 2px solid var(--text);
+  outline-offset: 3px;
+}
+
+@media(max-width:650px) {
+  header {
+    height: 66px;
+    padding: 0 4%;
   }
 
-</style></head>
+  .logo {
+    font-size: 20px;
+  }
+
+  .username {
+    max-width: 85px;
+    font-size: 11px;
+  }
+
+  .right {
+    gap: 8px;
+  }
+
+  .container {
+    width: 92%;
+    padding-top: 30px;
+  }
+
+  .page-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .primary-action {
+    width: 100%;
+  }
+
+  .deploy-box {
+    padding: 19px;
+  }
+
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media(prefers-reduced-motion:reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: .01ms !important;
+    animation-duration: .01ms !important;
+  }
+}
+</style>
+</head>
+
 <body>
 
 <header>
-  <div class="logo">Devploy</div>
+  <div class="logo">
+    Devploy
+  </div>
 
   <div class="right">
     <span id="username" class="username">Loading...</span>
 
-    <!-- MORE BUTTON -->
-    <button onclick="toggleMenu()" style="font-size:20px;background:none;border:none;cursor:pointer;">
-      ⋮
+    <button
+      id="themeToggle"
+      class="theme-toggle"
+      type="button"
+      aria-label="Switch to light theme"
+      title="Toggle theme">
+      ☀
     </button>
 
-    <div id="menu" style="
-    display: none; 
-    position: absolute; 
-    right: 20px; 
-    top: 60px; 
-    background: #ffffff; 
-    padding: 8px; 
-    border-radius: 12px; 
-    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
-    border: 1px solid rgba(0, 0, 0, 0.05);
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    min-width: 160px;
-">
-    <button onclick="showCreate()" style="
-        display: block;
-        width: 100%;
-        text-align: left;
-        background: none;
-        border: none;
-        padding: 10px 12px;
-        font-size: 14px;
-        color: #1f2937;
-        border-radius: 6px;
-        cursor: pointer;
-        transition: background 0.2s;
-    " onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background='none'">
-        New Project
-    </button>
-    
-    <button onclick="showProjects()" style="
-        display: block;
-        width: 100%;
-        text-align: left;
-        background: none;
-        border: none;
-        padding: 10px 12px;
-        font-size: 14px;
-        color: #1f2937;
-        border-radius: 6px;
-        cursor: pointer;
-        transition: background 0.2s;
-    " onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background='none'">
-        Show Projects
-    </button>
+    <div class="menu-wrap">
+      <button
+        class="more-btn"
+        type="button"
+        onclick="toggleMenu()"
+        aria-label="Open dashboard menu"
+        aria-expanded="false">
+        ⋮
+      </button>
 
-    <hr style="
-        border: 0;
-        height: 1px;
-        background: #e5e7eb;
-        margin: 6px 4px;
-    ">
-    
-    <button onclick="logout()" style="
-        display: block;
-        width: 100%;
-        text-align: left;
-        background: none;
-        border: none;
-        padding: 10px 12px;
-        font-size: 14px;
-        color: #dc2626;
-        border-radius: 6px;
-        cursor: pointer;
-        transition: background 0.2s;
-    " onmouseover="this.style.background='#fef2f2'" onmouseout="this.style.background='none'">
-        Logout
-    </button>
-</div>
-
+      <div id="menu">
+        <button onclick="showCreate()">＋ &nbsp; New Project</button>
+        <button onclick="showProjects()">▦ &nbsp; Show Projects</button>
+        <hr>
+        <button onclick="logout()">↗ &nbsp; Logout</button>
+      </div>
+    </div>
   </div>
 </header>
 
-
 <div class="container">
 
-  <!-- ================= PROJECTS VIEW ================= -->
+  <!-- PROJECTS VIEW -->
   <div id="projectsView">
 
-    <h2 class="section-title">Your Projects</h2>
+    <div class="page-heading">
+      <div>
+        <div class="eyebrow">Developer workspace</div>
+        <h1>Your Projects</h1>
+        <p>Manage your deployments and keep your projects in one place.</p>
+      </div>
+
+      <button class="primary-action" onclick="showCreate()">
+        + &nbsp; Create New Project
+      </button>
+    </div>
+
+    <h2 class="section-title">All Projects</h2>
 
     <div id="projectsContainer"></div>
 
   </div>
 
-
-  <!-- ================= CREATE PROJECT VIEW ================= -->
+  <!-- CREATE PROJECT VIEW -->
   <div id="createView" style="display:none;">
 
-    <div class="deploy-box">
-      <h3>Create New Project</h3>
-
-      <input id="projectName" placeholder="Project Name">
-    <button
-id="connectGithubBtn"
-class="deploy-btn"
-onclick="connectGithub()">
-
-Connect GitHub
-
-</button>
-
-<select
-id="repoSelect"
-style="
-width:100%;
-padding:14px;
-border:1px solid #dbe3f0;
-border-radius:12px;
-margin-bottom:15px;
-display:none;
-">
-</select>
-
-      <!-- Deployment type -->
-<label for="deployType" style="display:block;margin-bottom:8px;font-weight:600;">
-  Deployment Type
-</label>
-
-<select id="deployType"
-  onchange="toggleFrameworkSettings()"
-  style="width:100%;padding:14px;border:1px solid #dbe3f0;border-radius:12px;margin-bottom:15px;">
-  <option value="static">Static Deploy (Existing)</option>
-  <option value="framework">Framework Build (GitHub Actions)</option>
-</select>
-
-<div id="frameworkSettings" style="display:none;margin-bottom:18px;">
-
-  <p id="frameworkDetection"
-     style="font-size:13px;color:#6b7280;margin-bottom:12px;">
-    Select a repository to detect its framework.
-  </p>
-
-  <label>Install Command</label>
-  <input id="installCommand" value="npm install"
-         placeholder="npm install">
-
-  <label>Build Command</label>
-  <input id="buildCommand" value="npm run build"
-         placeholder="npm run build">
-
-  <label>Output Directory</label>
-  <input id="outputDir" value="dist"
-         placeholder="dist">
-
-  <small style="color:#6b7280;">
-    These settings determine how GitHub Actions builds your project
-    and which folder Devploy publishes.
-  </small>
-</div>
-
-      <div class="form-group">
-        <input type="text" id="baseDir" placeholder="Base Directory: frontend">
-        <small>
-          Optional. Leave empty if index.html is in root.
-        </small>
+    <div class="page-heading">
+      <div>
+        <div class="eyebrow">Deployment setup</div>
+        <h1>Create a project</h1>
+        <p>Connect a GitHub repository and configure your deployment.</p>
       </div>
-<label>
-<input
-type="checkbox"
-id="autoDeploy">
-Auto Deploy on GitHub Push
-</label>
-      <button id="deployBtn" onclick="deploy()" class="deploy-btn">
-        Deploy Project
-      </button>
 
-      <div id="result" class="result"></div>
+      <button class="primary-action" onclick="showProjects()">
+        View Projects
+      </button>
+    </div>
+
+    <div class="deploy-box">
+
+      <div class="form-heading">
+        <h2>New Deployment</h2>
+        <p>Configure your project before starting the deployment.</p>
+      </div>
+
+      <div class="form-section">
+        <div class="form-section-title">01 — Project details</div>
+
+        <label for="projectName">Project Name</label>
+        <input id="projectName" placeholder="my-awesome-project">
+      </div>
+
+      <div class="form-section">
+        <div class="form-section-title">02 — Source repository</div>
+
+        <p class="form-hint" style="margin-bottom:14px;">
+          Connect GitHub to choose the repository you want to deploy.
+        </p>
+
+        <button
+          id="connectGithubBtn"
+          class="deploy-btn"
+          onclick="connectGithub()">
+          Connect GitHub
+        </button>
+
+        <label for="repoSelect">Select Repository</label>
+        <select id="repoSelect" style="display:none;"></select>
+      </div>
+
+      <div class="form-section">
+        <div class="form-section-title">03 — Build configuration</div>
+
+        <label for="deployType">Deployment Type</label>
+
+        <select id="deployType" onchange="toggleFrameworkSettings()">
+          <option value="static">Static Deploy (Existing)</option>
+          <option value="framework">Framework Build (GitHub Actions)</option>
+        </select>
+
+        <div id="frameworkSettings" style="display:none;margin-bottom:18px;">
+
+          <p id="frameworkDetection">
+            Select a repository to detect its framework.
+          </p>
+
+          <label for="installCommand">Install Command</label>
+          <input id="installCommand" value="npm install" placeholder="npm install">
+
+          <label for="buildCommand">Build Command</label>
+          <input id="buildCommand" value="npm run build" placeholder="npm run build">
+
+          <label for="outputDir">Output Directory</label>
+          <input id="outputDir" value="dist" placeholder="dist">
+
+          <small>
+            These settings determine how GitHub Actions builds your project
+            and which folder Devploy publishes.
+          </small>
+        </div>
+
+        <label for="baseDir">Base Directory</label>
+        <input type="text" id="baseDir" placeholder="frontend">
+
+        <p class="form-hint" style="margin-top:-8px;">
+          Optional. Leave empty if index.html is in the repository root.
+        </p>
+      </div>
+
+      <div class="form-section">
+        <div class="form-section-title">04 — Deployment options</div>
+
+        <label id="autoDeployLabel" for="autoDeploy">
+          <input type="checkbox" id="autoDeploy">
+          Auto Deploy on GitHub Push
+        </label>
+
+        <p class="form-hint" style="margin-top:-10px;margin-bottom:18px;">
+          Automatically deploy when you push changes to GitHub.
+        </p>
+
+        <button id="deployBtn" onclick="deploy()" class="deploy-btn">
+          Deploy Project →
+        </button>
+
+        <div id="result" class="result"></div>
+      </div>
+
     </div>
 
     <!-- LOG BOX -->
-    <div id="logBox"
-      style="display:none;margin-top:20px;padding:15px;border-radius:12px;background:#f3f4f6;">
+    <div id="logBox">
       <h3>Deployment Logs</h3>
       <div id="logs"></div>
     </div>
@@ -443,9 +852,46 @@ Auto Deploy on GitHub Push
 
 </div>
 
+<!-- THEME HANDLING -->
+<script>
+(function(){
+
+  const toggle = document.getElementById("themeToggle");
+  const savedTheme = localStorage.getItem("devployz-theme");
+
+  function applyTheme(theme){
+    document.documentElement.setAttribute("data-theme", theme);
+
+    localStorage.setItem("devployz-theme", theme);
+
+    toggle.textContent = theme === "dark" ? "☀" : "☾";
+
+    toggle.setAttribute(
+      "aria-label",
+      theme === "dark"
+        ? "Switch to light theme"
+        : "Switch to dark theme"
+    );
+
+    document.querySelector('meta[name="theme-color"]')?.setAttribute(
+      "content",
+      theme === "dark" ? "#090909" : "#f5f5f5"
+    );
+  }
+
+  applyTheme(savedTheme === "light" ? "light" : "dark");
+
+  toggle.addEventListener("click", function(){
+    const current =
+      document.documentElement.getAttribute("data-theme");
+
+    applyTheme(current === "dark" ? "light" : "dark");
+  });
+
+})();
+</script>
 
 <script>
-
   async function loadProjects() {
 
   const res = await fetch(`${API}/my-projects`, {
@@ -466,8 +912,12 @@ Auto Deploy on GitHub Push
   if (!projects.length) {
     container.innerHTML = `
       <div class="empty">
+        <div class="empty-icon">＋</div>
         <h3>No Projects Yet</h3>
-        <p>Create your first deployment.</p>
+        <p>Create your first deployment and it will appear here.</p>
+        <button class="primary-action" onclick="showCreate()">
+          Create Your First Project
+        </button>
       </div>
     `;
     return;
@@ -940,10 +1390,8 @@ function logout() {
 getMe();
 loadProjects();
 checkGithub();
-  toggleFrameworkSettings()
+toggleFrameworkSettings()
 </script>
 
 </body>
-
-
-  </html>
+</html>
