@@ -26,6 +26,28 @@ if(
 </script>
   <style>
 
+    .delete-btn{
+  width:100%;
+  margin-top:12px;
+  padding:11px;
+  border:1px solid #fecaca;
+  background:#fef2f2;
+  color:#dc2626;
+  border-radius:10px;
+  font-weight:600;
+  cursor:pointer;
+  transition:.2s;
+}
+
+.delete-btn:hover{
+  background:#fee2e2;
+}
+
+.delete-btn:disabled{
+  opacity:.5;
+  cursor:not-allowed;
+}
+
 *{
 margin:0;
 padding:0;
@@ -424,30 +446,61 @@ Auto Deploy on GitHub Push
 
 <script>
 
-  async function deleteProject(projectName) {
+  async function loadProjects() {
 
-    const response = await fetch(
-        `${API_URL}/project/${encodeURIComponent(projectName)}`,
-        {
-            method: "DELETE",
-            headers: {
-                "Authorization": `Bearer ${token}`
-            }
-        }
-    );
-
-    const data = await response.json();
-
-    if (!response.ok) {
-        throw new Error(
-            data.detail || "Failed to delete project"
-        );
+  const res = await fetch(`${API}/my-projects`, {
+    headers: {
+      Authorization: `Bearer ${token}`
     }
+  });
 
-    return data;
+  if (!res.ok) {
+    console.error("Failed to load projects");
+    return;
+  }
+
+  const projects = await res.json();
+
+  const container = document.getElementById("projectsContainer");
+
+  if (!projects.length) {
+    container.innerHTML = `
+      <div class="empty">
+        <h3>No Projects Yet</h3>
+        <p>Create your first deployment.</p>
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = `
+    <div class="grid">
+      ${projects.map(p => `
+        <div class="card"
+          onclick="openProject('${p.name}')"
+          style="cursor:pointer">
+
+          <h3>${p.name}</h3>
+
+          <div class="meta">
+            Status: ${p.status}
+          </div>
+
+          <div class="meta">
+            ${p.url}
+          </div>
+
+          <button
+            class="delete-btn"
+            onclick="event.stopPropagation(); deleteProject('${p.name}', this)">
+            Delete Project
+          </button>
+
+        </div>
+      `).join("")}
+    </div>
+  `;
 }
-
-  
   function toggleFrameworkSettings(){
 
   const type = document.getElementById("deployType").value;
@@ -830,39 +883,54 @@ async function getMe() {
   document.getElementById("username").innerText = user.username;
 }
 
-async function loadProjects() {
+async function deleteProject(projectName, button) {
 
-  const res = await fetch(`${API}/my-projects`, {
-    headers: { Authorization: `Bearer ${token}` }
-  });
+  const confirmed = confirm(
+    `Are you sure you want to delete "${projectName}"?\n\n` +
+    "All deployments and stored project files will be permanently deleted."
+  );
 
-  const projects = await res.json();
+  if (!confirmed) return;
 
-  const container = document.getElementById("projectsContainer");
+  button.disabled = true;
+  button.innerText = "Deleting...";
 
-  if (!projects.length) {
-    container.innerHTML = `
-      <div class="empty">
-        <h3>No Projects Yet</h3>
-        <p>Create your first deployment.</p>
-      </div>
-    `;
-    return;
+  try {
+
+    const response = await fetch(
+      `${API}/project/${encodeURIComponent(projectName)}`,
+      {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(
+        data.detail || "Failed to delete project"
+      );
+    }
+
+    alert("Project deleted successfully!");
+
+    // Refresh project cards
+    await loadProjects();
+
+  } catch (error) {
+
+    console.error("Delete project error:", error);
+
+    alert(error.message);
+
+    button.disabled = false;
+    button.innerText = "Delete Project";
+
   }
-
-  container.innerHTML = `
-    <div class="grid">
-      ${projects.map(p => `
-      <div class="card"  onclick="location.href='project.html?project=${p.name}'">
-          <h3>${p.name}</h3>
-          <div class="meta">Status: ${p.status}</div>
-          <div class="meta">${p.url}</div>
-        </div>
-      `).join("")}
-    </div>
-  `;
 }
-
 
 /* ================= LOGOUT ================= */
 
