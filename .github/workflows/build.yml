@@ -309,6 +309,19 @@ jobs:
         run: |
           set -euo pipefail
 
+            
+          echo "Current directory:"
+          pwd
+
+          echo "Root files:"
+          ls -la
+
+          echo "Backend files:"
+          ls -la backend/ || true
+
+          echo "Searching for rewrite_path.py:"
+          find . -name "rewrite_path.py" -not -path "*/.git/*"
+
           echo "========== PATH REWRITING =========="
 
           python backend/rewrite_path.py \
