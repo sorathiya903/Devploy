@@ -300,8 +300,15 @@ jobs:
           echo "Artifact prepared successfully"
 
 
-
-      
+       
+      - name: Checkout Devploy scripts
+        uses: actions/checkout@v4
+        with:
+          path: devploy-source
+          sparse-checkout: |
+            backend/rewrite_path.py
+          sparse-checkout-cone-mode: false
+                
       - name: Rewrite deployment paths
         shell: bash
         env:
@@ -324,7 +331,7 @@ jobs:
 
           echo "========== PATH REWRITING =========="
 
-          python backend/rewrite_path.py \
+          python devploy-source/backend/rewrite_path.py \
             artifact \
             "$PROJECT_NAME"
 
