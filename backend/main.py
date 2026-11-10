@@ -426,6 +426,11 @@ def framework_deploy_worker(
                 deployment_id
             )
 
+            latest = projects.find_one({    "name": project_name,    "owner": username})
+          
+            if not latest or latest.get("deleting"):
+                raise Exception("Project is being deleted")
+
             if uploaded == 0:
                 raise Exception("No build files uploaded")
 
@@ -536,33 +541,46 @@ def upload_project_to_b2(local_path, project_name, deployment_id):
 
 
 def delete_b2_prefix(prefix):
-
     paginator = s3_client.get_paginator("list_objects_v2")
+
+    deleted_count = 0
 
     for page in paginator.paginate(
         Bucket=B2_BUCKET_NAME,
         Prefix=prefix
     ):
-
         objects = page.get("Contents", [])
 
         for i in range(0, len(objects), 1000):
-
             batch = objects[i:i + 1000]
 
-            if batch:
-                s3_client.delete_objects(
-                    Bucket=B2_BUCKET_NAME,
-                    Delete={
-                        "Objects": [
-                            {"Key": obj["Key"]}
-                            for obj in batch
-                        ],
-                        "Quiet": True
-                    }
+            if not batch:
+                continue
+
+            response = s3_client.delete_objects(
+                Bucket=B2_BUCKET_NAME,
+                Delete={
+                    "Objects": [
+                        {"Key": obj["Key"]}
+                        for obj in batch
+                    ],
+                    "Quiet": False
+                }
+            )
+
+            errors = response.get("Errors", [])
+
+            if errors:
+                raise Exception(
+                    f"Failed to delete {len(errors)} B2 objects: "
+                    f"{errors[:3]}"
                 )
 
+            deleted_count += len(
+                response.get("Deleted", [])
+            )
 
+    return deleted_count
 def get_b2_object(key):
 
     try:
@@ -832,6 +850,90 @@ def get_project_info(
     return project
 
 
+
+@app.delete("/project/{project_name}")
+def delete_project(
+    project_name: str,
+    authorization: str = Header(None)
+):
+    # 1. Authenticate user
+    username = current_user(authorization)
+
+    # 2. Validate project name
+    project_name = project_name.strip().lower()
+
+    if not re.fullmatch(r"[a-z0-9-]{1,50}", project_name):
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid project name"
+        )
+
+    # 3. Find project belonging to this user
+    project = projects.find_one({
+        "name": project_name,
+        "owner": username
+    })
+
+    if not project:
+        raise HTTPException(
+            status_code=404,
+            detail="Project not found or you don't own this project"
+        )
+
+    # 4. Mark project as deleting
+    projects.update_one(
+        {
+            "_id": project["_id"],
+            "owner": username
+        },
+        {
+            "$set": {
+                "deleting": True
+            }
+        }
+    )
+
+    # 5. Delete all project deployments from B2
+    try:
+        deleted_files = delete_b2_prefix(
+            f"projects/{project_name}/"
+        )
+
+    except Exception as e:
+        print(
+            "PROJECT B2 DELETION ERROR:",
+            repr(e)
+        )
+
+        # Keep MongoDB record so deletion can be retried
+        raise HTTPException(
+            status_code=502,
+            detail="Unable to delete project files from storage. Please retry."
+        )
+
+    # 6. Delete MongoDB project record
+    result = projects.delete_one({
+        "_id": project["_id"],
+        "owner": username
+    })
+
+    if result.deleted_count != 1:
+        raise HTTPException(
+            status_code=500,
+            detail="Files deleted, but project database deletion failed"
+        )
+
+    # 7. Success
+    return {
+        "success": True,
+        "message": "Project deleted successfully",
+        "project": project_name,
+        "deleted_files": deleted_files
+    }
+
+
+
+
 @app.get("/project-status/{project_name}")
 def project_status(
     project_name: str,
@@ -1053,6 +1155,10 @@ def deploy_commit_worker(
                 deployment_id
             )
 
+            latest = projects.find_one({    "name": project_name,    "owner": username})
+            if not latest or latest.get("deleting"):
+                raise Exception("Project is being deleted")
+
             if uploaded == 0:
                 raise Exception("No project files uploaded")
 
@@ -1217,6 +1323,11 @@ def deploy_worker(project_name, repo_url, base_dir, username):
                 project_name,
                 deployment_id
             )
+
+            latest = projects.find_one({    "name": project_name,    "owner": username})
+           
+            if not latest or latest.get("deleting"):
+                raise Exception("Project is being deleted")
 
             if uploaded == 0:
                 raise Exception("No project files uploaded")
