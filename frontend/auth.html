@@ -284,9 +284,6 @@ body {
   letter-spacing: 1.5px;
 }
 
-/* =====================================
-   TABS
-===================================== */
 
 .tabs {
   display: grid;
@@ -576,6 +573,7 @@ input:focus {
   aria-label="Switch to light theme"
   title="Toggle theme"
 >
+  
     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
     <circle cx="12" cy="12" r="4"></circle>
     <path d="M12 2v2"></path>
@@ -740,7 +738,7 @@ input:focus {
 
     if (theme === "light") {
 
-      toggle.textContent = "☾";
+      
 
       toggle.setAttribute(
         "aria-label",
@@ -749,7 +747,7 @@ input:focus {
 
     } else {
 
-      toggle.textContent = "☀";
+      
 
       toggle.setAttribute(
         "aria-label",
