@@ -3,1467 +3,2716 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#000000">
 
-  <!-- SEO -->
-  <title>Devploy — Deploy Websites Instantly from GitHub</title>
-  <meta
-    name="description"
-    content="Devploy is a modern deployment platform that lets developers deploy GitHub projects in seconds. Connect your repository, build your project, and launch it with one click."
-  >
-  <meta name="keywords" content="website deployment, GitHub deployment, developer deployment platform, deploy website, Devploy">
-  <meta name="robots" content="index, follow">
+  <meta name="description" content="Devployz makes deploying your projects simple. Connect GitHub, configure your project, build automatically, and publish to the web.">
 
-  <!-- Fonts -->
+  <title>Devployz — From Repository to Reality</title>
+
+  <!-- Typography -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link
-    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;600;700&display=swap"
-    rel="stylesheet"
-  >
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;450;500;550;600;650;700;750;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 
   <style>
+    /* ========================================
+       DEVPOYLZ — DESIGN SYSTEM
+    ======================================== */
+
     :root {
+      color-scheme: dark;
+
       --black: #000000;
-      --black-1: #050505;
-      --black-2: #080808;
-      --black-3: #0d0d0d;
-      --black-4: #111111;
+      --surface: #080808;
+      --card: #0d0d0d;
+      --elevated: #141414;
+      --hover: #1b1b1b;
+
+      --border: #252525;
+      --border-subtle: #1a1a1a;
 
       --white: #ffffff;
-      --white-90: rgba(255,255,255,.90);
-      --white-70: rgba(255,255,255,.70);
-      --white-50: rgba(255,255,255,.50);
-      --white-30: rgba(255,255,255,.30);
-      --white-15: rgba(255,255,255,.15);
-      --white-08: rgba(255,255,255,.08);
-      --white-05: rgba(255,255,255,.05);
+      --text: #ededed;
+      --secondary: #a3a3a3;
+      --muted: #737373;
+      --disabled: #525252;
 
-      --border: rgba(255,255,255,.10);
-      --border-hover: rgba(255,255,255,.24);
+      --font: 'Geist', sans-serif;
+      --mono: 'JetBrains Mono', monospace;
 
-      --max-width: 1200px;
-
-      --ease: cubic-bezier(.22, 1, .36, 1);
+      --container: 1160px;
+      --nav-height: 76px;
     }
 
-    * {
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
       margin: 0;
       padding: 0;
-      box-sizing: border-box;
     }
 
     html {
       scroll-behavior: smooth;
+      scroll-padding-top: 100px;
     }
 
     body {
-      font-family: "Inter", sans-serif;
       background: var(--black);
-      color: var(--white);
+      color: var(--text);
+      font-family: var(--font);
+      -webkit-font-smoothing: antialiased;
       overflow-x: hidden;
       line-height: 1.6;
     }
 
-    ::selection {
-      background: #fff;
-      color: #000;
+    body.menu-open {
+      overflow: hidden;
     }
 
     a {
       color: inherit;
+      text-decoration: none;
     }
 
-    button,
-    input {
+    button {
       font: inherit;
     }
 
+    button,
+    a {
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    button:focus-visible,
+    a:focus-visible {
+      outline: 2px solid var(--white);
+      outline-offset: 5px;
+    }
+
+    ::selection {
+      background: var(--white);
+      color: var(--black);
+    }
+
     .container {
-      width: min(var(--max-width), 90%);
+      width: min(var(--container), calc(100% - 48px));
       margin-inline: auto;
     }
 
-    /* =========================
-       BACKGROUND
-    ========================= */
-
-    .background {
-      position: fixed;
-      inset: 0;
-      z-index: -10;
-      pointer-events: none;
-      background:
-        radial-gradient(
-          circle at 15% 10%,
-          rgba(255,255,255,.07),
-          transparent 28%
-        ),
-        radial-gradient(
-          circle at 85% 20%,
-          rgba(255,255,255,.045),
-          transparent 25%
-        ),
-        radial-gradient(
-          circle at 50% 100%,
-          rgba(255,255,255,.04),
-          transparent 35%
-        ),
-        #000;
-    }
-
-    .grid-bg {
-      position: fixed;
-      inset: 0;
-      z-index: -9;
-      pointer-events: none;
-      opacity: .28;
-
-      background-image:
-        linear-gradient(rgba(255,255,255,.025) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(255,255,255,.025) 1px, transparent 1px);
-
-      background-size: 60px 60px;
-
-      mask-image: linear-gradient(
-        to bottom,
-        black,
-        transparent 90%
-      );
-    }
-
-    .noise {
-      position: fixed;
-      inset: 0;
-      z-index: -8;
-      pointer-events: none;
-      opacity: .035;
-
-      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.7'/%3E%3C/svg%3E");
-    }
-
-    /* =========================
-       NAVBAR
-    ========================= */
-
-    .navbar {
-      position: fixed;
-      top: 16px;
-      left: 50%;
-      transform: translateX(-50%);
-      width: min(1160px, 92%);
-      z-index: 1000;
-
-      border: 1px solid var(--border);
-      border-radius: 18px;
-
-      background: rgba(8,8,8,.76);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
-
-      box-shadow:
-        0 20px 70px rgba(0,0,0,.45),
-        inset 0 1px rgba(255,255,255,.04);
-
-      animation: navEnter .8s var(--ease) both;
-    }
-
-    .nav-inner {
-      min-height: 70px;
-      padding: 0 10px 0 16px;
-
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 20px;
-    }
-
-    .logo {
-      display: inline-flex;
-      align-items: center;
-      gap: 11px;
-
-      font-family: "Space Grotesk", sans-serif;
-      font-size: 1.15rem;
-      font-weight: 700;
-      letter-spacing: -.03em;
-      text-decoration: none;
-    }
-
-    .logo-icon {
-      width: 38px;
-      height: 38px;
-
-      display: grid;
-      place-items: center;
-
-      border-radius: 11px;
-
-      background: #fff;
-      color: #000;
-
-      font-family: "Space Grotesk", sans-serif;
-      font-size: 1.05rem;
-      font-weight: 700;
-
-      box-shadow:
-        0 0 0 1px rgba(255,255,255,.2),
-        0 8px 30px rgba(255,255,255,.12);
-
-      transition:
-        transform .4s var(--ease),
-        box-shadow .4s var(--ease);
-    }
-
-    .logo:hover .logo-icon {
-      transform: rotate(-6deg) scale(1.06);
-      box-shadow:
-        0 0 0 1px rgba(255,255,255,.4),
-        0 12px 40px rgba(255,255,255,.18);
-    }
-
-    .nav-actions {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    /* =========================
-       BUTTONS
-    ========================= */
-
-    .btn {
-      position: relative;
-      isolation: isolate;
-
-      min-height: 48px;
-      padding: 0 19px;
-
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 9px;
-
-      border-radius: 12px;
-
-      text-decoration: none;
-      font-size: .9rem;
-      font-weight: 700;
-
-      cursor: pointer;
-
-      border: 1px solid transparent;
-
-      transition:
-        transform .35s var(--ease),
-        background .35s var(--ease),
-        color .35s var(--ease),
-        border-color .35s var(--ease),
-        box-shadow .35s var(--ease);
-    }
-
-    .btn::after {
-      content: "";
-      position: absolute;
-      inset: 0;
-      z-index: -1;
-
-      border-radius: inherit;
-
-      background: linear-gradient(
-        120deg,
-        transparent 20%,
-        rgba(255,255,255,.22),
-        transparent 80%
-      );
-
-      transform: translateX(-120%);
-      transition: transform .65s var(--ease);
-    }
-
-    .btn:hover::after {
-      transform: translateX(120%);
-    }
-
-    .btn:hover {
-      transform: translateY(-3px);
-    }
-
-    .btn:active {
-      transform: translateY(-1px) scale(.98);
-    }
-
-    .btn-primary {
-      background: #fff;
-      color: #000;
-
-      box-shadow:
-        0 10px 30px rgba(255,255,255,.10);
-    }
-
-    .btn-primary:hover {
-      background: #e9e9e9;
-
-      box-shadow:
-        0 15px 40px rgba(255,255,255,.18);
-    }
-
-    .btn-secondary {
-      background: rgba(255,255,255,.035);
-      color: #fff;
-      border-color: var(--border);
-    }
-
-    .btn-secondary:hover {
-      background: rgba(255,255,255,.09);
-      border-color: var(--border-hover);
-    }
-
-    /* =========================
-       HERO
-    ========================= */
-
-    .hero {
-      min-height: 100vh;
-      padding-top: 190px;
-      padding-bottom: 120px;
-
-      display: flex;
-      align-items: center;
-    }
-
-    .hero-grid {
-      display: grid;
-      grid-template-columns: 1.05fr .95fr;
-      align-items: center;
-      gap: 80px;
-    }
-
-    .hero-content {
-      animation: heroText .9s var(--ease) .1s both;
+    .mono {
+      font-family: var(--mono);
     }
 
     .eyebrow {
       display: inline-flex;
       align-items: center;
-      gap: 9px;
-
-      margin-bottom: 25px;
-      padding: 7px 12px;
-
-      border: 1px solid;
-            border-radius: 999px;
-      background: rgba(255,255,255,.035);
-
-      color: var(--white-70);
-      font-size: .78rem;
-      font-weight: 600;
-      letter-spacing: .03em;
+      gap: 10px;
+      color: var(--secondary);
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 1.8px;
       text-transform: uppercase;
     }
 
-    .eyebrow-dot {
-      width: 7px;
-      height: 7px;
+    .eyebrow::before {
+      content: "";
+      width: 18px;
+      height: 1px;
+      background: var(--secondary);
+    }
+
+    .section-heading {
+      max-width: 680px;
+      font-size: clamp(34px, 5vw, 54px);
+      font-weight: 600;
+      letter-spacing: -2.5px;
+      line-height: 1.12;
+    }
+
+    .section-description {
+      max-width: 470px;
+      margin-top: 18px;
+      color: var(--secondary);
+      font-size: 15px;
+      line-height: 1.85;
+    }
+
+    .muted {
+      color: var(--muted);
+    }
+
+    /* ========================================
+       BUTTONS
+    ======================================== */
+
+    .btn {
+      min-height: 46px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding: 0 21px;
+      border: 1px solid transparent;
+      font-size: 13px;
+      font-weight: 600;
+      transition:
+        background .2s ease,
+        border-color .2s ease,
+        color .2s ease,
+        transform .2s ease;
+      cursor: pointer;
+    }
+
+    .btn:hover {
+      transform: translateY(-2px);
+    }
+
+    .btn-primary {
+      background: var(--white);
+      color: var(--black);
+    }
+
+    .btn-primary:hover {
+      background: #dcdcdc;
+    }
+
+    .btn-secondary {
+      border-color: var(--border);
+      background: transparent;
+      color: var(--text);
+    }
+
+    .btn-secondary:hover {
+      background: var(--elevated);
+      border-color: #444;
+    }
+
+    .btn-arrow {
+      font-size: 17px;
+      line-height: 1;
+      transition: transform .2s ease;
+    }
+
+    .btn:hover .btn-arrow {
+      transform: translateX(3px);
+    }
+
+    /* ========================================
+       NAVIGATION
+    ======================================== */
+
+    .navbar {
+      height: var(--nav-height);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(0, 0, 0, .88);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .nav-inner {
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 11px;
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: -.8px;
+      flex-shrink: 0;
+    }
+
+    .brand-symbol {
+      width: 31px;
+      height: 31px;
+      display: grid;
+      place-items: center;
+      border: 1px solid #3a3a3a;
+      background: var(--elevated);
+      font-family: var(--mono);
+      font-size: 15px;
+      font-weight: 600;
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 35px;
+    }
+
+    .nav-links a {
+      color: var(--secondary);
+      font-size: 12px;
+      transition: color .2s;
+    }
+
+    .nav-links a:hover,
+    .nav-actions .login:hover {
+      color: var(--white);
+    }
+
+    .nav-actions {
+      display: flex;
+      align-items: center;
+      gap: 23px;
+    }
+
+    .nav-actions .login {
+      color: var(--secondary);
+      font-size: 12px;
+      transition: color .2s;
+    }
+
+    .nav-actions .btn {
+      min-height: 38px;
+      padding-inline: 16px;
+      font-size: 12px;
+    }
+
+    .menu-toggle {
+      display: none;
+      width: 40px;
+      height: 40px;
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--white);
+      cursor: pointer;
+      font-size: 20px;
+    }
+
+    /* ========================================
+       HERO
+    ======================================== */
+
+    .hero {
+      position: relative;
+      padding: 100px 0 80px;
+      overflow: hidden;
+    }
+
+    .hero::before {
+      content: "";
+      position: absolute;
+      width: 850px;
+      height: 500px;
+      top: -220px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: radial-gradient(
+        ellipse,
+        rgba(255,255,255,.055),
+        transparent 70%
+      );
+      pointer-events: none;
+    }
+
+    .hero-content {
+      position: relative;
+      z-index: 1;
+      max-width: 900px;
+      margin: auto;
+      text-align: center;
+    }
+
+    .hero-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 9px;
+      padding: 7px 12px;
+      border: 1px solid var(--border);
+      background: #090909;
+      color: var(--secondary);
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: .3px;
+    }
+
+    .hero-tag-dot {
+      width: 6px;
+      height: 6px;
       border-radius: 50%;
-      background: #fff;
-      box-shadow: 0 0 14px rgba(255,255,255,.7);
-      animation: pulse 2s ease-in-out infinite;
+      background: #bdbdbd;
     }
 
     .hero h1 {
-      max-width: 760px;
-
-      font-family: "Space Grotesk", sans-serif;
-      font-size: clamp(3.4rem, 7vw, 6.5rem);
-      line-height: .94;
-      letter-spacing: -.065em;
-      font-weight: 700;
+      max-width: 850px;
+      margin: 31px auto 0;
+      font-size: clamp(48px, 7.5vw, 88px);
+      font-weight: 600;
+      letter-spacing: -6px;
+      line-height: .99;
     }
 
     .hero h1 span {
-      color: var(--white-50);
+      color: #777;
     }
 
     .hero-description {
-      max-width: 620px;
-      margin-top: 28px;
-
-      color: var(--white-50);
-      font-size: 1.08rem;
+      max-width: 560px;
+      margin: 26px auto 0;
+      color: var(--secondary);
+      font-size: 16px;
       line-height: 1.8;
     }
 
     .hero-actions {
       display: flex;
+      justify-content: center;
       flex-wrap: wrap;
       gap: 12px;
-      margin-top: 35px;
+      margin-top: 31px;
     }
 
     .hero-note {
-      margin-top: 18px;
-      color: var(--white-30);
-      font-size: .78rem;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 9px;
+      margin-top: 24px;
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: 10px;
     }
 
-    /* =========================
-       TERMINAL CARD
-    ========================= */
+    .github-mark {
+      width: 16px;
+      height: 16px;
+      fill: currentColor;
+    }
 
-    .terminal-wrap {
+    /* ========================================
+       HERO PRODUCT VISUAL
+    ======================================== */
+
+    .hero-product {
+      max-width: 960px;
+      margin: 75px auto 0;
       position: relative;
-      animation: heroCard 1s var(--ease) .25s both;
+      z-index: 2;
     }
 
-    .terminal-glow {
-      position: absolute;
-      inset: 10% -10% -10%;
-
-      background: radial-gradient(
-        ellipse,
-        rgba(255,255,255,.12),
-        transparent 65%
-      );
-
-      filter: blur(35px);
-      z-index: -1;
-    }
-
-    .terminal {
+    .product-window {
+      border: 1px solid #303030;
+      background: #090909;
+      box-shadow: 0 30px 100px rgba(0,0,0,.7);
       overflow: hidden;
-
-      border: 1px solid var(--border);
-      border-radius: 20px;
-
-      background: linear-gradient(
-        145deg,
-        rgba(255,255,255,.07),
-        rgba(255,255,255,.025)
-      );
-
-      box-shadow:
-        0 35px 100px rgba(0,0,0,.6),
-        inset 0 1px rgba(255,255,255,.06);
     }
 
-    .terminal-top {
-      height: 52px;
-      padding: 0 17px;
-
+    .window-topbar {
+      height: 48px;
       display: flex;
       align-items: center;
       justify-content: space-between;
-
+      padding: 0 19px;
+      background: #0e0e0e;
       border-bottom: 1px solid var(--border);
-      background: rgba(255,255,255,.025);
     }
 
-    .terminal-dots {
+    .window-brand {
       display: flex;
-      gap: 7px;
+      align-items: center;
+      gap: 9px;
+      font-size: 11px;
+      font-weight: 600;
     }
 
-    .terminal-dots i {
-      width: 9px;
-      height: 9px;
+    .window-brand-symbol {
+      width: 20px;
+      height: 20px;
+      display: grid;
+      place-items: center;
+      border: 1px solid #383838;
+      font-family: var(--mono);
+      font-size: 10px;
+    }
+
+    .window-dots {
+      display: flex;
+      gap: 6px;
+    }
+
+    .window-dots i {
+      width: 7px;
+      height: 7px;
       border-radius: 50%;
-      background: rgba(255,255,255,.22);
+      background: #414141;
     }
 
-    .terminal-title {
-      color: var(--white-30);
-      font-family: monospace;
-      font-size: .72rem;
+    .window-top-label {
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: 9px;
     }
 
-    .terminal-body {
-      padding: 28px 25px 30px;
+    .deployment-layout {
+      display: grid;
+      grid-template-columns: 205px 1fr;
       min-height: 370px;
-
-      font-family: "SFMono-Regular", Consolas, monospace;
-      font-size: .83rem;
-      line-height: 2;
     }
 
-    .terminal-line {
+    .product-sidebar {
+      padding: 22px 15px;
+      border-right: 1px solid var(--border);
+      background: #0a0a0a;
+    }
+
+    .sidebar-label {
+      padding: 0 9px;
+      color: var(--disabled);
+      font-family: var(--mono);
+      font-size: 9px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+
+    .sidebar-project {
+      margin: 17px 0 25px;
+      padding: 11px 10px;
+      border: 1px solid #333;
+      background: #151515;
+    }
+
+    .sidebar-project strong {
+      display: block;
+      font-size: 11px;
+      font-weight: 500;
+    }
+
+    .sidebar-project small {
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: 9px;
+    }
+
+    .sidebar-item {
       display: flex;
-      gap: 12px;
+      align-items: center;
+      gap: 10px;
+      padding: 9px;
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    .sidebar-item.active {
+      background: #181818;
+      color: var(--white);
+    }
+
+    .sidebar-icon {
+      width: 15px;
+      text-align: center;
+      color: #999;
+      font-family: var(--mono);
+    }
+
+    .product-main {
+      padding: 27px 30px;
+      min-width: 0;
+    }
+
+    .project-heading {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 20px;
+    }
+
+    .project-heading h3 {
+      font-size: 19px;
+      letter-spacing: -.5px;
+      font-weight: 550;
+    }
+
+    .project-heading p {
+      margin-top: 4px;
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: 9px;
+    }
+
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 6px 10px;
+      border: 1px solid #373737;
+      background: #151515;
+      color: #dedede;
+      font-family: var(--mono);
+      font-size: 9px;
       white-space: nowrap;
     }
 
-    .terminal-prompt {
-      color: rgba(255,255,255,.35);
-    }
-
-    .terminal-command {
-      color: rgba(255,255,255,.9);
-    }
-
-    .terminal-muted {
-      color: rgba(255,255,255,.35);
-    }
-
-    .terminal-success {
-      color: #fff;
-    }
-
-    .terminal-progress {
-      height: 5px;
-      margin: 18px 0;
-      overflow: hidden;
-
-      border-radius: 999px;
-      background: rgba(255,255,255,.08);
-    }
-
-    .terminal-progress span {
-      display: block;
-      width: 100%;
-      height: 100%;
-
-      border-radius: inherit;
-      background: #fff;
-
-      animation: progress 2.2s var(--ease) both;
-      transform-origin: left;
-    }
-
-    /* =========================
-       STATS
-    ========================= */
-
-    .stats {
-      padding: 0 0 120px;
-    }
-
-    .stats-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-
-      border-top: 1px solid var(--border);
-      border-bottom: 1px solid var(--border);
-    }
-
-    .stat {
-      padding: 35px 30px;
-      text-align: center;
-    }
-
-    .stat + .stat {
-      border-left: 1px solid var(--border);
-    }
-
-    .stat strong {
-      display: block;
-
-      font-family: "Space Grotesk", sans-serif;
-      font-size: 2.4rem;
-      letter-spacing: -.05em;
-    }
-
-    .stat span {
-      color: var(--white-30);
-      font-size: .8rem;
-      text-transform: uppercase;
-      letter-spacing: .08em;
-    }
-
-    /* =========================
-       SECTIONS
-    ========================= */
-
-    section.content-section {
-      padding: 130px 0;
-    }
-
-    .section-heading {
-      max-width: 720px;
-      margin-bottom: 60px;
-    }
-
-    .section-label {
-      margin-bottom: 15px;
-
-      color: var(--white-30);
-      font-size: .75rem;
-      font-weight: 700;
-      letter-spacing: .13em;
-      text-transform: uppercase;
-    }
-
-    .section-heading h2 {
-      font-family: "Space Grotesk", sans-serif;
-      font-size: clamp(2.4rem, 5vw, 4.4rem);
-      line-height: 1;
-      letter-spacing: -.055em;
-    }
-
-    .section-heading p {
-      margin-top: 20px;
-      color: var(--white-50);
-      font-size: 1rem;
-    }
-
-    /* =========================
-       FEATURES
-    ========================= */
-
-    .features {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 14px;
-    }
-
-    .feature {
-      position: relative;
-      min-height: 270px;
-      padding: 30px;
-
-      overflow: hidden;
-
-      border: 1px solid var(--border);
-      border-radius: 18px;
-
-      background:
-        linear-gradient(
-          145deg,
-          rgba(255,255,255,.055),
-          rgba(255,255,255,.015)
-        );
-
-      transition:
-        transform .45s var(--ease),
-        border-color .45s var(--ease),
-        background .45s var(--ease);
-    }
-
-    .feature:hover {
-      transform: translateY(-8px);
-      border-color: var(--border-hover);
-      background: rgba(255,255,255,.06);
-    }
-
-    .feature::before {
-      content: "";
-      position: absolute;
-      width: 150px;
-      height: 150px;
-      top: -80px;
-      right: -70px;
-
+    .status-dot {
+      width: 6px;
+      height: 6px;
       border-radius: 50%;
-      background: rgba(255,255,255,.08);
-      filter: blur(20px);
+      background: #d0d0d0;
     }
 
-    .feature-number {
-      color: var(--white-30);
-      font-family: monospace;
-      font-size: .75rem;
+    .deployment-flow {
+      display: grid;
+      grid-template-columns: 1fr 25px 1fr 25px 1fr;
+      align-items: center;
+      gap: 8px;
+      margin-top: 35px;
     }
 
-    .feature h3 {
-      margin-top: 55px;
-
-      font-family: "Space Grotesk", sans-serif;
-      font-size: 1.35rem;
-      letter-spacing: -.025em;
+    .flow-node {
+      min-width: 0;
+      padding: 13px 10px;
+      background: #111;
+      border: 1px solid #2c2c2c;
     }
 
-    .feature p {
-      margin-top: 10px;
-      color: var(--white-50);
-      font-size: .88rem;
+    .flow-node-label {
+      display: block;
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: 8px;
+      letter-spacing: .5px;
+      text-transform: uppercase;
+    }
+
+    .flow-node strong {
+      display: block;
+      margin-top: 9px;
+      font-size: 11px;
+      font-weight: 550;
+      overflow-wrap: anywhere;
+    }
+
+    .flow-node small {
+      display: block;
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 9px;
+    }
+
+    .flow-arrow {
+      color: #686868;
+      text-align: center;
+      font-size: 17px;
+    }
+
+    .build-panel {
+      margin-top: 25px;
+      border: 1px solid var(--border);
+      background: #0d0d0d;
+    }
+
+    .build-panel-header {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 13px 15px;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .build-panel-header strong {
+      font-size: 10px;
+      font-weight: 550;
+    }
+
+    .build-panel-header span {
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: 9px;
+    }
+
+    .build-list {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      padding: 5px 15px;
+    }
+
+    .build-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 0;
+      border-bottom: 1px solid #1c1c1c;
+      font-size: 10px;
+    }
+
+    .build-item:nth-last-child(-n+2) {
+      border-bottom: 0;
+    }
+
+    .build-item span {
+      color: var(--muted);
+    }
+
+    .build-item strong {
+      font-family: var(--mono);
+      font-size: 9px;
+      font-weight: 400;
+      color: #e1e1e1;
+    }
+
+    .live-url {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-top: 17px;
+      padding: 13px 15px;
+      border: 1px solid #373737;
+      background: #151515;
+    }
+
+    .live-url small {
+      display: block;
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: 8px;
+      letter-spacing: .7px;
+      text-transform: uppercase;
+    }
+
+    .live-url strong {
+      display: block;
+      margin-top: 4px;
+      font-family: var(--mono);
+      font-size: 10px;
+      font-weight: 400;
+      overflow-wrap: anywhere;
+    }
+
+    .url-action {
+      flex-shrink: 0;
+      color: var(--secondary);
+      font-size: 10px;
+    }
+
+    .window-caption {
+      padding: 13px;
+      text-align: center;
+      color: var(--disabled);
+      font-family: var(--mono);
+      font-size: 9px;
+    }
+
+    /* ========================================
+       TRUST / INTRO STRIP
+    ======================================== */
+
+    .intro-strip {
+      border-top: 1px solid var(--border-subtle);
+      border-bottom: 1px solid var(--border-subtle);
+      background: var(--surface);
+    }
+
+    .intro-strip-inner {
+      min-height: 90px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 25px;
+    }
+
+    .intro-strip p {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .intro-points {
+      display: flex;
+      gap: 30px;
+      color: #c4c4c4;
+      font-family: var(--mono);
+      font-size: 10px;
+    }
+
+    .intro-points span::before {
+      content: "—";
+      margin-right: 8px;
+      color: var(--muted);
+    }
+
+    /* ========================================
+       PRODUCT SHOWCASE
+    ======================================== */
+
+    .showcase {
+      padding: 125px 0;
+    }
+
+    .showcase-grid {
+      display: grid;
+      grid-template-columns: .8fr 1.2fr;
+      align-items: center;
+      gap: 75px;
+    }
+
+    .showcase-copy {
+      max-width: 400px;
+    }
+
+    .showcase-copy .section-heading {
+      margin-top: 23px;
+    }
+
+    .showcase-details {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      margin-top: 34px;
+    }
+
+    .showcase-detail {
+      display: flex;
+      align-items: flex-start;
+      gap: 13px;
+      padding: 17px 0;
+      border-top: 1px solid var(--border);
+    }
+
+    .detail-number {
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: 10px;
+    }
+
+    .showcase-detail strong {
+      display: block;
+      font-size: 12px;
+      font-weight: 550;
+    }
+
+    .showcase-detail p {
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 11px;
       line-height: 1.7;
     }
 
-    /* =========================
-       WORKFLOW
-    ========================= */
-
-    .workflow {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 1px;
-
-      overflow: hidden;
-
-      border: 1px solid var(--border);
-      border-radius: 18px;
-      background: var(--border);
-    }
-
-    .step {
-      min-height: 230px;
-      padding: 28px;
-
-      background: #050505;
-    }
-
-    .step-number {
-      width: 35px;
-      height: 35px;
-
-      display: grid;
-      place-items: center;
-
-      border: 1px solid var(--border);
-      border-radius: 50%;
-
-      color: var(--white-70);
-      font-family: monospace;
-      font-size: .75rem;
-    }
-
-    .step h3 {
-      margin-top: 48px;
-
-      font-family: "Space Grotesk", sans-serif;
-      font-size: 1.1rem;
-    }
-
-    .step p {
-      margin-top: 8px;
-      color: var(--white-30);
-      font-size: .83rem;
-    }
-
-    /* =========================
-       CTA
-    ========================= */
-
-    .cta {
+    .showcase-visual {
+      min-width: 0;
       position: relative;
-      overflow: hidden;
-
-      padding: 90px 40px;
-      text-align: center;
-
+      padding: 20px;
       border: 1px solid var(--border);
-      border-radius: 24px;
-
       background:
-        radial-gradient(
-          circle at 50% 0%,
-          rgba(255,255,255,.12),
-          transparent 55%
-        ),
-        rgba(255,255,255,.025);
+        linear-gradient(135deg, #101010, #050505);
     }
 
-    .cta::before {
+    .showcase-visual::before {
       content: "";
       position: absolute;
       inset: 0;
-
       background-image:
-        linear-gradient(rgba(255,255,255,.025) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(255,255,255,.025) 1px, transparent 1px);
-
-      background-size: 45px 45px;
-
-      mask-image: linear-gradient(
-        to bottom,
-        black,
-        transparent
-      );
-
+        linear-gradient(rgba(255,255,255,.018) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,.018) 1px, transparent 1px);
+      background-size: 30px 30px;
       pointer-events: none;
     }
 
-    .cta-content {
+    .showcase-visual > * {
       position: relative;
       z-index: 1;
     }
 
-    .cta h2 {
-      max-width: 750px;
-      margin: auto;
-
-      font-family: "Space Grotesk", sans-serif;
-      font-size: clamp(2.5rem, 5vw, 4.5rem);
-      line-height: 1;
-      letter-spacing: -.06em;
+    .showcase-ui {
+      border: 1px solid #303030;
+      background: #090909;
     }
 
-    .cta p {
-      max-width: 550px;
-      margin: 20px auto 30px;
-
-      color: var(--white-50);
+    .showcase-ui-header {
+      display: flex;
+      justify-content: space-between;
+      padding: 16px;
+      border-bottom: 1px solid var(--border);
+      color: var(--secondary);
+      font-family: var(--mono);
+      font-size: 9px;
     }
 
-    /* =========================
-       FOOTER
-    ========================= */
-
-    footer {
-      padding: 50px 0 35px;
-      border-top: 1px solid var(--border);
+    .showcase-ui-body {
+      padding: 22px;
     }
 
-    .footer-inner {
+    .showcase-ui-title {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 20px;
+      gap: 15px;
+      margin-bottom: 25px;
     }
 
-    .footer-copy {
-      color: var(--white-30);
-      font-size: .78rem;
+    .showcase-ui-title h3 {
+      font-size: 17px;
+      font-weight: 550;
     }
 
-    .footer-links {
+    .showcase-ui-title p {
+      margin-top: 4px;
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: 9px;
+    }
+
+    .config-row {
+      display: grid;
+      grid-template-columns: 125px 1fr;
+      gap: 15px;
+      padding: 14px 0;
+      border-top: 1px solid var(--border-subtle);
+      font-size: 11px;
+    }
+
+    .config-row span {
+      color: var(--muted);
+    }
+
+    .config-row strong {
+      font-family: var(--mono);
+      font-size: 10px;
+      font-weight: 400;
+      overflow-wrap: anywhere;
+    }
+
+    .progress-track {
+      height: 3px;
+      margin-top: 18px;
+      background: #292929;
+    }
+
+    .progress-fill {
+      width: 100%;
+      height: 100%;
+      background: #d0d0d0;
+    }
+
+    .showcase-footer {
       display: flex;
-      gap: 22px;
+      justify-content: space-between;
+      gap: 12px;
+      margin-top: 18px;
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: 9px;
     }
 
-    .footer-links a {
-      color: var(--white-50);
-      font-size: .78rem;
-      text-decoration: none;
-      transition: color .3s ease;
+    /* ========================================
+       FEATURES
+    ======================================== */
+
+    .features {
+      padding: 115px 0;
+      background: var(--surface);
+      border-top: 1px solid var(--border-subtle);
+      border-bottom: 1px solid var(--border-subtle);
     }
 
-    .footer-links a:hover {
-      color: #fff;
+    .features-heading {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 30px;
+      margin-bottom: 55px;
     }
 
-    /* =========================
-       ANIMATIONS
-    ========================= */
-
-    @keyframes navEnter {
-      from {
-        opacity: 0;
-        transform: translate(-50%, -20px);
-      }
-      to {
-        opacity: 1;
-        transform: translate(-50%, 0);
-      }
+    .features-heading .section-heading {
+      margin-top: 21px;
     }
 
-    @keyframes heroText {
-      from {
-        opacity: 0;
-        transform: translateY(35px);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
+    .features-heading > p {
+      max-width: 310px;
+      color: var(--secondary);
+      font-size: 13px;
+      line-height: 1.8;
     }
 
-    @keyframes heroCard {
-      from {
-        opacity: 0;
-        transform: translateY(45px) scale(.97);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0) scale(1);
-      }
+    .feature-grid {
+      display: grid;
+      grid-template-columns: repeat(12, 1fr);
+      border-top: 1px solid var(--border);
+      border-left: 1px solid var(--border);
     }
 
-    @keyframes pulse {
-      0%, 100% {
-        opacity: .5;
-        transform: scale(.8);
-      }
-      50% {
-        opacity: 1;
-        transform: scale(1.15);
-      }
+    .feature {
+      position: relative;
+      min-height: 225px;
+      padding: 28px;
+      border-right: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      transition: background .25s ease;
     }
 
-    @keyframes progress {
-      from {
-        transform: scaleX(0);
-      }
-      to {
-        transform: scaleX(1);
-      }
+    .feature:hover {
+      background: #111;
     }
 
-    /* =========================
+    .feature:nth-child(1),
+    .feature:nth-child(4) {
+      grid-column: span 7;
+    }
+
+    .feature:nth-child(2),
+    .feature:nth-child(3),
+    .feature:nth-child(5),
+    .feature:nth-child(6) {
+      grid-column: span 5;
+    }
+
+    .feature-number {
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: 10px;
+    }
+
+    .feature-symbol {
+      position: absolute;
+      top: 24px;
+      right: 27px;
+      display: grid;
+      place-items: center;
+      width: 38px;
+      height: 38px;
+      border: 1px solid #333;
+      color: #ddd;
+      font-family: var(--mono);
+      font-size: 15px;
+    }
+
+    .feature h3 {
+      margin-top: 49px;
+      font-size: 17px;
+      font-weight: 550;
+      letter-spacing: -.3px;
+    }
+
+    .feature p {
+      max-width: 340px;
+      margin-top: 9px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.85;
+    }
+
+    .feature-detail {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      margin-top: 17px;
+      color: #bcbcbc;
+      font-family: var(--mono);
+      font-size: 9px;
+    }
+
+    .feature-detail::before {
+      content: "";
+      width: 5px;
+      height: 5px;
+      background: #a1a1a1;
+      border-radius: 50%;
+    }
+
+    /* ========================================
+       WORKFLOW
+    ======================================== */
+
+    .workflow {
+      padding: 125px 0;
+    }
+
+    .workflow-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      gap: 30px;
+      margin-bottom: 65px;
+    }
+
+    .workflow-header .section-heading {
+      margin-top: 20px;
+    }
+
+    .workflow-header p {
+      max-width: 300px;
+      color: var(--secondary);
+      font-size: 13px;
+      line-height: 1.8;
+    }
+
+    .workflow-steps {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .workflow-step {
+      position: relative;
+      padding: 30px 22px 35px;
+      border-right: 1px solid var(--border);
+    }
+
+    .workflow-step:first-child {
+      padding-left: 0;
+    }
+
+    .workflow-step:last-child {
+      border-right: 0;
+    }
+
+    .step-number {
+      color: #777;
+      font-family: var(--mono);
+      font-size: 11px;
+    }
+
+    .step-line {
+      height: 1px;
+      margin: 24px 0;
+      background: #353535;
+      position: relative;
+    }
+
+    .step-line::before {
+      content: "";
+      position: absolute;
+      top: -2px;
+      left: 0;
+      width: 5px;
+      height: 5px;
+      background: #d2d2d2;
+      border-radius: 50%;
+    }
+
+    .workflow-step h3 {
+      font-size: 15px;
+      font-weight: 550;
+    }
+
+    .workflow-step p {
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.8;
+    }
+
+    .step-tech {
+      display: inline-block;
+      margin-top: 25px;
+      color: #999;
+      font-family: var(--mono);
+      font-size: 9px;
+    }
+
+    /* ========================================
+       DEVELOPER SECTION
+    ======================================== */
+
+    .developer-section {
+      padding: 105px 0;
+      background: #0b0b0b;
+      border-top: 1px solid var(--border-subtle);
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .developer-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 85px;
+      align-items: center;
+    }
+
+    .developer-copy .section-heading {
+      margin-top: 22px;
+    }
+
+    .developer-copy > p {
+      margin-top: 22px;
+      max-width: 440px;
+      color: var(--secondary);
+      font-size: 14px;
+      line-height: 1.9;
+    }
+
+    .developer-points {
+      margin-top: 35px;
+      border-top: 1px solid var(--border);
+    }
+
+    .developer-point {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 14px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 12px;
+    }
+
+    .developer-point span {
+      color: #aaa;
+      font-family: var(--mono);
+      font-size: 10px;
+    }
+
+    .developer-code {
+      padding: 25px;
+      border: 1px solid #303030;
+      background: #070707;
+    }
+
+    .code-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 18px;
+      border-bottom: 1px solid var(--border);
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: 9px;
+    }
+
+    .code-body {
+      padding-top: 23px;
+      font-family: var(--mono);
+      font-size: 11px;
+      line-height: 2.4;
+      overflow-wrap: anywhere;
+    }
+
+    .code-comment {
+      color: #666;
+    }
+
+    .code-key {
+      color: #e3e3e3;
+    }
+
+    .code-value {
+      color: #999;
+    }
+
+    .code-indent {
+      padding-left: 22px;
+    }
+
+    .code-divider {
+      height: 1px;
+      margin: 20px 0;
+      background: var(--border-subtle);
+    }
+
+    .code-status {
+      display: flex;
+      justify-content: space-between;
+      color: var(--secondary);
+      font-family: var(--mono);
+      font-size: 9px;
+    }
+
+    /* ========================================
+       FINAL CTA
+    ======================================== */
+
+    .final-cta {
+      padding: 130px 0;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .final-cta::before {
+      content: "";
+      position: absolute;
+      width: 650px;
+      height: 400px;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      background: radial-gradient(
+        ellipse,
+        rgba(255,255,255,.045),
+        transparent 70%
+      );
+      pointer-events: none;
+    }
+
+    .final-cta-inner {
+      position: relative;
+      z-index: 1;
+    }
+
+    .final-cta h2 {
+      max-width: 780px;
+      margin: 24px auto 0;
+      font-size: clamp(42px, 7vw, 75px);
+      font-weight: 600;
+      letter-spacing: -4px;
+      line-height: 1.05;
+    }
+
+    .final-cta p {
+      max-width: 430px;
+      margin: 21px auto 30px;
+      color: var(--secondary);
+      font-size: 14px;
+      line-height: 1.8;
+    }
+
+    /* ========================================
+       FOOTER
+    ======================================== */
+
+    .footer {
+      border-top: 1px solid var(--border);
+      background: #050505;
+    }
+
+    .footer-main {
+      display: grid;
+      grid-template-columns: 1.7fr 1fr 1fr 1fr;
+      gap: 45px;
+      padding: 65px 0 60px;
+    }
+
+    .footer-brand p {
+      max-width: 260px;
+      margin-top: 17px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.8;
+    }
+
+    .footer-column h4 {
+      margin-bottom: 20px;
+      color: #eee;
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    .footer-column a {
+      display: block;
+      width: fit-content;
+      margin: 12px 0;
+      color: var(--muted);
+      font-size: 11px;
+      transition: color .2s;
+    }
+
+    .footer-column a:hover {
+      color: var(--white);
+    }
+
+    .footer-bottom {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 20px;
+      padding: 22px 0;
+      border-top: 1px solid var(--border-subtle);
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: 9px;
+    }
+
+    .back-top {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: color .2s;
+    }
+
+    .back-top:hover {
+      color: var(--white);
+    }
+
+    /* ========================================
+       REVEAL ANIMATIONS
+    ======================================== */
+
+    .reveal {
+      opacity: 0;
+      transform: translateY(18px);
+      transition:
+        opacity .7s ease,
+        transform .7s cubic-bezier(.2,.7,.2,1);
+    }
+
+    .reveal.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* ========================================
        RESPONSIVE
-    ========================= */
+    ======================================== */
 
     @media (max-width: 900px) {
-      .hero-grid {
-        grid-template-columns: 1fr;
-        gap: 60px;
-      }
-
       .hero {
-        padding-top: 150px;
-      }
-
-      .features {
-        grid-template-columns: 1fr 1fr;
-      }
-
-      .workflow {
-        grid-template-columns: 1fr 1fr;
-      }
-    }
-
-    @media (max-width: 650px) {
-      .navbar {
-        top: 10px;
-        width: 94%;
-        border-radius: 15px;
-      }
-
-      .nav-inner {
-        min-height: 62px;
-      }
-
-      .nav-actions .btn-secondary {
-        display: none;
-      }
-
-      .hero {
-        min-height: auto;
-        padding-top: 135px;
-        padding-bottom: 90px;
+        padding-top: 85px;
       }
 
       .hero h1 {
-        font-size: clamp(3rem, 15vw, 5rem);
+        letter-spacing: -4px;
       }
 
-      .hero-description {
-        font-size: .95rem;
-      }
-
-      .terminal-body {
-        min-height: 320px;
-        padding: 22px 17px;
-        font-size: .7rem;
-      }
-
-      .stats-grid {
+      .showcase-grid {
         grid-template-columns: 1fr;
+        gap: 45px;
       }
 
-      .stat + .stat {
-        border-left: 0;
-        border-top: 1px solid var(--border);
+      .showcase-copy {
+        max-width: 600px;
       }
 
-      .features,
-      .workflow {
-        grid-template-columns: 1fr;
+      .developer-grid {
+        gap: 40px;
       }
 
-      section.content-section {
-        padding: 90px 0;
-      }
-
-      .feature {
-        min-height: 230px;
-      }
-
-      .cta {
-        padding: 65px 22px;
-      }
-
-      .footer-inner {
+      .intro-strip-inner {
         flex-direction: column;
-        align-items: flex-start;
+        justify-content: center;
+        padding: 23px 0;
+        text-align: center;
+      }
+
+      .workflow-steps {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .workflow-step:nth-child(2) {
+        border-right: 0;
+      }
+
+      .workflow-step:nth-child(-n+2) {
+        border-bottom: 1px solid var(--border);
+      }
+
+      .workflow-step:first-child {
+        padding-left: 22px;
       }
     }
 
-    @media (prefers-reduced-motion: reduce) {
-      html {
-        scroll-behavior: auto;
+    @media (max-width: 680px) {
+      :root {
+        --nav-height: 66px;
       }
 
+      .container {
+        width: calc(100% - 36px);
+      }
+
+      .nav-links {
+        display: none;
+        position: fixed;
+        top: var(--nav-height);
+        left: 0;
+        right: 0;
+        height: calc(100dvh - var(--nav-height));
+        padding: 35px 24px;
+        background: #050505;
+        border-top: 1px solid var(--border);
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0;
+      }
+
+      .nav-links.open {
+        display: flex;
+      }
+
+      .nav-links a {
+        padding: 20px 0;
+        border-bottom: 1px solid var(--border);
+        font-size: 16px;
+      }
+
+      .nav-actions {
+        margin-left: auto;
+        margin-right: 12px;
+        gap: 13px;
+      }
+
+      .nav-actions .login {
+        display: none;
+      }
+
+      .nav-actions .btn {
+        min-height: 36px;
+        padding-inline: 12px;
+        font-size: 11px;
+      }
+
+      .menu-toggle {
+        display: block;
+      }
+
+      .hero {
+        padding: 75px 0 55px;
+      }
+
+      .hero h1 {
+        font-size: clamp(46px, 12vw, 65px);
+        letter-spacing: -3.5px;
+      }
+
+      .hero-description {
+        font-size: 14px;
+      }
+
+      .hero-product {
+        margin-top: 50px;
+      }
+
+      .deployment-layout {
+        grid-template-columns: 1fr;
+      }
+
+      .product-sidebar {
+        display: none;
+      }
+
+      .product-main {
+        padding: 20px 15px;
+      }
+
+      .deployment-flow {
+        grid-template-columns: 1fr;
+        gap: 6px;
+        margin-top: 24px;
+      }
+
+      .flow-arrow {
+        transform: rotate(90deg);
+      }
+
+      .flow-node {
+        padding: 10px;
+      }
+
+      .build-list {
+        grid-template-columns: 1fr;
+      }
+
+      .build-item:nth-last-child(2) {
+        border-bottom: 1px solid #1c1c1c;
+      }
+
+      .build-item:last-child {
+        border-bottom: 0;
+      }
+
+      .project-heading h3 {
+        font-size: 16px;
+      }
+
+      .window-top-label {
+        display: none;
+      }
+
+      .intro-points {
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 14px;
+      }
+
+      .showcase,
+      .workflow {
+        padding: 85px 0;
+      }
+
+      .showcase-visual {
+        padding: 10px;
+      }
+
+      .showcase-ui-body {
+        padding: 15px;
+      }
+
+      .config-row {
+        grid-template-columns: 95px 1fr;
+        gap: 8px;
+        font-size: 10px;
+      }
+
+      .features {
+        padding: 85px 0;
+      }
+
+      .features-heading,
+      .workflow-header {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .features-heading > p,
+      .workflow-header p {
+        max-width: 450px;
+      }
+
+      .feature-grid {
+        display: block;
+      }
+
+      .feature {
+        min-height: 205px;
+      }
+
+      .workflow-steps {
+        grid-template-columns: 1fr;
+      }
+
+      .workflow-step,
+      .workflow-step:first-child {
+        padding: 25px 0;
+        border-right: 0;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .workflow-step:last-child {
+        border-bottom: 0;
+      }
+
+      .step-line {
+        margin: 17px 0;
+      }
+
+      .developer-section {
+        padding: 85px 0;
+      }
+
+      .developer-grid {
+        grid-template-columns: 1fr;
+        gap: 40px;
+      }
+
+      .developer-code {
+        padding: 17px;
+      }
+
+      .code-body {
+        font-size: 10px;
+      }
+
+      .final-cta {
+        padding: 95px 0;
+      }
+
+      .final-cta h2 {
+        font-size: clamp(42px, 11vw, 60px);
+        letter-spacing: -2.5px;
+      }
+
+      .footer-main {
+        grid-template-columns: 1fr 1fr;
+        gap: 40px 25px;
+        padding: 48px 0;
+      }
+
+      .footer-brand {
+        grid-column: span 2;
+      }
+
+      .footer-bottom {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+    }
+
+    @media (max-width: 380px) {
+      .brand {
+        font-size: 16px;
+        gap: 7px;
+      }
+
+      .nav-actions .btn {
+        padding-inline: 9px;
+      }
+
+      .hero h1 {
+        font-size: 44px;
+      }
+
+      .hero-actions .btn {
+        width: 100%;
+      }
+
+      .status-pill {
+        font-size: 8px;
+      }
+    }
+
+    /* ========================================
+       REDUCED MOTION
+    ======================================== */
+
+    @media (prefers-reduced-motion: reduce) {
       *,
       *::before,
       *::after {
+        scroll-behavior: auto !important;
         animation-duration: .01ms !important;
         animation-iteration-count: 1 !important;
         transition-duration: .01ms !important;
+      }
+
+      .reveal {
+        opacity: 1;
+        transform: none;
       }
     }
   </style>
 </head>
 
-<body>
+<body id="top">
 
-  <div class="background"></div>
-  <div class="grid-bg"></div>
-  <div class="noise"></div>
-
-  <!-- =========================
+  <!-- ======================================
        NAVBAR
-  ========================== -->
+  ======================================= -->
 
-  <nav class="navbar">
-    <div class="nav-inner">
+  <header class="navbar">
+    <div class="container nav-inner">
 
-      <a href="#" class="logo" aria-label="Devploy home">
-        <span class="logo-icon">D</span>
-        <span>Devploy</span>
+      <a href="#top" class="brand" aria-label="Devployz home">
+        <img src="logo.png" height="20" width="20">
+        <span>Devployz</span>
       </a>
 
-      <div class="nav-actions">
-        <a href="#features" class="btn btn-secondary">
-          Features
-        </a>
+      <nav class="nav-links" id="navLinks" aria-label="Main navigation">
+        <a href="#features">Features</a>
+        <a href="#workflow">How it works</a>
+        <a href="/dashboard.html">Dashboard</a>
+      </nav>
 
-        <a href="#deploy" class="btn btn-primary">
-          Start Deploying
-          <span>↗</span>
+      <div class="nav-actions">
+        <a href="/auth.html" class="login">Login</a>
+        <a href="/auth.html" class="btn btn-primary">
+          Get Started <span class="btn-arrow">↗</span>
         </a>
       </div>
 
+      <button
+        class="menu-toggle"
+        id="menuToggle"
+        aria-label="Open navigation menu"
+        aria-expanded="false"
+        aria-controls="navLinks"
+      >
+        ☰
+      </button>
+
     </div>
-  </nav>
+  </header>
+
 
   <main>
 
-    <!-- =========================
+    <!-- ======================================
          HERO
-    ========================== -->
+    ======================================= -->
 
-    <section class="hero" id="deploy">
+    <section class="hero">
       <div class="container">
 
-        <div class="hero-grid">
+        <div class="hero-content reveal">
 
-          <div class="hero-content">
-
-            <div class="eyebrow">
-              <span class="eyebrow-dot"></span>
-              Deployment, simplified
-            </div>
-
-            <h1>
-              Ship code.
-              <br>
-              <span>Not headaches.</span>
-            </h1>
-
-            <p class="hero-description">
-              Devploy turns your GitHub repository into a live website
-              in seconds. Connect your code, build automatically, and
-              launch with one click.
-            </p>
-
-            <div class="hero-actions">
-              <a href="#workflow" class="btn btn-primary">
-                Deploy from GitHub
-                <span>→</span>
-              </a>
-
-              <a href="#features" class="btn btn-secondary">
-                Explore Devploy
-              </a>
-            </div>
-
-            <p class="hero-note">
-              No complicated configuration. No deployment headaches.
-            </p>
-
+          <div class="hero-tag">
+            <span class="hero-tag-dot"></span>
+            YOUR CODE. YOUR DEPLOYMENT.
           </div>
 
-          <!-- Terminal -->
+          <h1>
+            GitHub in.<br>
+            <span>Live on the web.</span>
+          </h1>
 
-          <div class="terminal-wrap">
-
-            <div class="terminal-glow"></div>
-
-            <div class="terminal">
-
-              <div class="terminal-top">
-                <div class="terminal-dots">
-                  <i></i>
-                  <i></i>
-                  <i></i>
-                </div>
-
-                <div class="terminal-title">
-                  devploy / production
-                </div>
-              </div>
-
-              <div class="terminal-body">
-
-                <div class="terminal-line">
-                  <span class="terminal-prompt">$</span>
-                  <span class="terminal-command">
-                    devploy connect github
-                  </span>
-                </div>
-
-                <div class="terminal-line">
-                  <span class="terminal-prompt">›</span>
-                  <span class="terminal-muted">
-                    Repository detected: my-awesome-project
-                  </span>
-                </div>
-
-                <br>
-
-                <div class="terminal-line">
-                  <span class="terminal-prompt">›</span>
-                  <span class="terminal-command">
-                    Installing dependencies...
-                  </span>
-                </div>
-
-                <div class="terminal-line">
-                  <span class="terminal-prompt">›</span>
-                  <span class="terminal-success">
-                    ✓ Dependencies installed
-                  </span>
-                </div>
-
-                <div class="terminal-line">
-                  <span class="terminal-prompt">›</span>
-                  <span class="terminal-command">
-                    Building project...
-                  </span>
-                </div>
-
-                <div class="terminal-progress">
-                  <span></span>
-                </div>
-
-                <div class="terminal-line">
-                  <span class="terminal-prompt">›</span>
-                  <span class="terminal-success">
-                    ✓ Build completed
-                  </span>
-                </div>
-
-                <div class="terminal-line">
-                  <span class="terminal-prompt">›</span>
-                  <span class="terminal-success">
-                    ✓ Deployment successful
-                  </span>
-                </div>
-
-                <br>
-
-                <div class="terminal-line">
-                  <span class="terminal-prompt">↗</span>
-                  <span class="terminal-command">
-                    https://my-awesome-project.devploy.app
-                  </span>
-                </div>
-
-              </div>
-            </div>
-
-          </div>
-
-        </div>
-      </div>
-    </section>
-
-    <!-- =========================
-         STATS
-    ========================== -->
-
-    <section class="stats">
-      <div class="container">
-
-        <div class="stats-grid">
-
-          <div class="stat">
-            <strong>&lt;60s</strong>
-            <span>Typical deployment</span>
-          </div>
-
-          <div class="stat">
-            <strong>1-Click</strong>
-            <span>Deployment workflow</span>
-          </div>
-
-          <div class="stat">
-            <strong>Git</strong>
-            <span>Powered by your repository</span>
-          </div>
-
-        </div>
-
-      </div>
-    </section>
-
-    <!-- =========================
-         FEATURES
-    ========================== -->
-
-    <section class="content-section" id="features">
-      <div class="container">
-
-        <div class="section-heading">
-          <div class="section-label">
-            Why Devploy
-          </div>
-
-          <h2>
-            Everything you need to
-            get code online.
-          </h2>
-
-          <p>
-            A focused deployment experience designed around the way
-            modern developers actually work.
+          <p class="hero-description">
+            Connect your repository, configure your project, and let
+            Devployz handle the build and deployment.
+            From your codebase to a live URL, without the hosting hassle.
           </p>
-        </div>
 
-        <div class="features">
-
-          <article class="feature">
-            <span class="feature-number">01</span>
-
-            <h3>GitHub Native</h3>
-
-            <p>
-              Connect your GitHub repository and deploy directly from
-              your existing development workflow.
-            </p>
-          </article>
-
-          <article class="feature">
-            <span class="feature-number">02</span>
-
-            <h3>Automatic Builds</h3>
-
-            <p>
-              Devploy detects your project, installs dependencies and
-              builds your application automatically.
-            </p>
-          </article>
-
-          <article class="feature">
-            <span class="feature-number">03</span>
-
-            <h3>Instant Launch</h3>
-
-            <p>
-              Once your build is ready, your application gets a live
-              deployment URL without unnecessary configuration.
-            </p>
-          </article>
-
-          <article class="feature">
-            <span class="feature-number">04</span>
-
-            <h3>Developer First</h3>
-
-            <p>
-              Clean interfaces, useful feedback and a workflow that
-              stays out of your way.
-            </p>
-          </article>
-
-          <article class="feature">
-            <span class="feature-number">05</span>
-
-            <h3>Fast Feedback</h3>
-
-            <p>
-              See build and deployment progress as it happens so you
-              always know what your application is doing.
-            </p>
-          </article>
-
-          <article class="feature">
-            <span class="feature-number">06</span>
-
-            <h3>Built to Scale</h3>
-
-            <p>
-              Start with a single project and grow toward a complete
-              deployment workflow for your applications.
-            </p>
-          </article>
-
-        </div>
-
-      </div>
-    </section>
-
-    <!-- =========================
-         WORKFLOW
-    ========================== -->
-
-    <section class="content-section" id="workflow">
-      <div class="container">
-
-        <div class="section-heading">
-          <div class="section-label">
-            The workflow
-          </div>
-
-          <h2>
-            From repository to production.
-          </h2>
-
-          <p>
-            Four simple steps. No deployment maze.
-          </p>
-        </div>
-
-        <div class="workflow">
-
-          <article class="step">
-            <div class="step-number">01</div>
-
-            <h3>Connect</h3>
-
-            <p>
-              Select the GitHub repository you want to deploy.
-            </p>
-          </article>
-
-          <article class="step">
-            <div class="step-number">02</div>
-
-            <h3>Configure</h3>
-
-            <p>
-              Choose your framework and build settings when needed.
-            </p>
-          </article>
-
-          <article class="step">
-            <div class="step-number">03</div>
-
-            <h3>Build</h3>
-
-            <p>
-              Devploy installs dependencies and builds your project.
-            </p>
-          </article>
-
-          <article class="step">
-            <div class="step-number">04</div>
-
-            <h3>Launch</h3>
-
-            <p>
-              Your application goes live with a production-ready URL.
-            </p>
-          </article>
-
-        </div>
-
-      </div>
-    </section>
-
-    <!-- =========================
-         CTA
-    ========================== -->
-
-    <section class="content-section">
-      <div class="container">
-
-        <div class="cta">
-
-          <div class="cta-content">
-
-            <h2>
-              Your next deployment
-              starts here.
-            </h2>
-
-            <p>
-              Stop wrestling with deployment configuration.
-              Connect your repository and get your project online.
-            </p>
-
-            <a href="#deploy" class="btn btn-primary">
-              Start Deploying
-              <span>→</span>
+          <div class="hero-actions">
+            <a href="auth.html" class="btn btn-primary">
+              Get Started <span class="btn-arrow">↗</span>
             </a>
 
+            <a href="#features" class="btn btn-secondary">
+              Explore Features <span class="btn-arrow">↓</span>
+            </a>
+          </div>
+
+          <div class="hero-note">
+            <svg class="github-mark" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 .8a11.2 11.2 0 0 0-3.54 21.83c.56.1.77-.24.77-.54v-2.1c-3.14.68-3.8-1.33-3.8-1.33-.51-1.3-1.25-1.65-1.25-1.65-1.02-.7.08-.68.08-.68 1.13.08 1.73 1.16 1.73 1.16 1 .1.77 2.03 3.45 1.56.1-.72.39-1.21.7-1.49-2.5-.28-5.13-1.25-5.13-5.55 0-1.22.44-2.22 1.16-3-.12-.28-.5-1.42.11-2.96 0 0 .95-.3 3.08 1.15a10.7 10.7 0 0 1 5.6 0c2.14-1.45 3.08-1.15 3.08-1.15.61 1.54.23 2.68.12 2.96.72.78 1.15 1.78 1.15 3 0 4.31-2.63 5.27-5.14 5.55.4.34.74 1.01.74 2.04v3.03c0 .3.2.65.78.54A11.2 11.2 0 0 0 12 .8z"/>
+            </svg>
+            GITHUB-POWERED WORKFLOW
+            <span>·</span>
+            AUTOMATED BUILDS
+          </div>
+
+        </div>
+
+
+        <!-- HERO PRODUCT INTERFACE -->
+
+        <div class="hero-product reveal">
+
+          <div class="product-window">
+
+            <div class="window-topbar">
+
+              <div class="window-brand">
+                <span class="window-brand-symbol">D</span>
+                DEVPOYLZ
+              </div>
+
+              <span class="window-top-label">
+                PRODUCT PREVIEW / DEPLOYMENT OVERVIEW
+              </span>
+
+              <div class="window-dots">
+                <i></i><i></i><i></i>
+              </div>
+
+            </div>
+
+
+            <div class="deployment-layout">
+
+              <!-- Sidebar -->
+
+              <aside class="product-sidebar">
+
+                <div class="sidebar-label">Workspace</div>
+
+                <div class="sidebar-project">
+                  <strong>my-portfolio</strong>
+                  <small>Illustrative project</small>
+                </div>
+
+                <div class="sidebar-label">Project</div>
+
+                <div class="sidebar-item active">
+                  <span class="sidebar-icon">▦</span>
+                  Overview
+                </div>
+
+                <div class="sidebar-item">
+                  <span class="sidebar-icon">⌘</span>
+                  Repository
+                </div>
+
+                <div class="sidebar-item">
+                  <span class="sidebar-icon">⚙</span>
+                  Configuration
+                </div>
+
+                <div class="sidebar-item">
+                  <span class="sidebar-icon">⇧</span>
+                  Deployments
+                </div>
+
+              </aside>
+
+
+              <!-- Main interface -->
+
+              <div class="product-main">
+
+                <div class="project-heading">
+
+                  <div>
+                    <h3>my-portfolio</h3>
+                    <p>PROJECT / OVERVIEW</p>
+                  </div>
+
+                  <div class="status-pill">
+                    <span class="status-dot"></span>
+                    DEPLOYED
+                  </div>
+
+                </div>
+
+
+                <!-- Deployment pipeline -->
+
+                <div class="deployment-flow">
+
+                  <div class="flow-node">
+                    <span class="flow-node-label">01 / Source</span>
+                    <strong>GitHub</strong>
+                    <small>Repository connected</small>
+                  </div>
+
+                  <div class="flow-arrow">→</div>
+
+                  <div class="flow-node">
+                    <span class="flow-node-label">02 / Build</span>
+                    <strong>Framework</strong>
+                    <small>Configuration detected</small>
+                  </div>
+
+                  <div class="flow-arrow">→</div>
+
+                  <div class="flow-node">
+                    <span class="flow-node-label">03 / Result</span>
+                    <strong>Live</strong>
+                    <small>Deployment published</small>
+                  </div>
+
+                </div>
+
+
+                <!-- Build details -->
+
+                <div class="build-panel">
+
+                  <div class="build-panel-header">
+                    <strong>Deployment details</strong>
+                    <span>ILLUSTRATIVE PREVIEW</span>
+                  </div>
+
+                  <div class="build-list">
+
+                    <div class="build-item">
+                      <span>Repository</span>
+                      <strong>username / portfolio</strong>
+                    </div>
+
+                    <div class="build-item">
+                      <span>Framework</span>
+                      <strong>Vite</strong>
+                    </div>
+
+                    <div class="build-item">
+                      <span>Build command</span>
+                      <strong>npm run build</strong>
+                    </div>
+
+                    <div class="build-item">
+                      <span>Output directory</span>
+                      <strong>dist</strong>
+                    </div>
+
+                    <div class="build-item">
+                      <span>Build status</span>
+                      <strong>Completed</strong>
+                    </div>
+
+                    <div class="build-item">
+                      <span>Deployment</span>
+                      <strong>Published</strong>
+                    </div>
+
+                  </div>
+
+                </div>
+
+
+                <!-- Live URL -->
+
+                <div class="live-url">
+
+                  <div>
+                    <small>LIVE DEPLOYMENT URL</small>
+                    <strong>my-portfolio.devployz.example</strong>
+                  </div>
+
+                  <span class="url-action">↗</span>
+
+                </div>
+
+              </div>
+
+            </div>
+
+          </div>
+
+          <div class="window-caption">
+            ILLUSTRATIVE PRODUCT INTERFACE · NOT LIVE USER DATA
           </div>
 
         </div>
 
       </div>
+    </section>
+
+
+    <!-- ======================================
+         INTRO STRIP
+    ======================================= -->
+
+    <section class="intro-strip">
+      <div class="container intro-strip-inner">
+
+        <p>A simpler path from development to deployment.</p>
+
+        <div class="intro-points">
+          <span>Repository-first</span>
+          <span>Automated builds</span>
+          <span>Live deployments</span>
+        </div>
+
+      </div>
+    </section>
+
+
+    <!-- ======================================
+         PRODUCT SHOWCASE
+    ======================================= -->
+
+    <section class="showcase" id="dashboard">
+
+      <div class="container showcase-grid">
+
+        <div class="showcase-copy reveal">
+
+          <span class="eyebrow">THE PLATFORM</span>
+
+          <h2 class="section-heading">
+            Your deployment workflow. One place.
+          </h2>
+
+          <p class="section-description">
+            Devployz brings the essential steps of deploying a project
+            together. Connect a repository, review its configuration,
+            monitor the build, and access your deployment.
+          </p>
+
+          <div class="showcase-details">
+
+            <div class="showcase-detail">
+              <span class="detail-number">01</span>
+              <div>
+                <strong>Repository connection</strong>
+                <p>Start with an existing GitHub project.</p>
+              </div>
+            </div>
+
+            <div class="showcase-detail">
+              <span class="detail-number">02</span>
+              <div>
+                <strong>Build configuration</strong>
+                <p>Review framework, commands, and output settings.</p>
+              </div>
+            </div>
+
+            <div class="showcase-detail">
+              <span class="detail-number">03</span>
+              <div>
+                <strong>Deployment overview</strong>
+                <p>See build results and access the published URL.</p>
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+
+
+        <!-- Detailed product preview -->
+
+        <div class="showcase-visual reveal">
+
+          <div class="showcase-ui">
+
+            <div class="showcase-ui-header">
+              <span>DEVPOYLZ / PROJECT SETTINGS</span>
+              <span>PREVIEW 001</span>
+            </div>
+
+            <div class="showcase-ui-body">
+
+              <div class="showcase-ui-title">
+                <div>
+                  <h3>Project configuration</h3>
+                  <p>my-portfolio / deployment settings</p>
+                </div>
+
+                <div class="status-pill">
+                  <span class="status-dot"></span>
+                  READY
+                </div>
+              </div>
+
+              <div class="config-row">
+                <span>Project</span>
+                <strong>my-portfolio</strong>
+              </div>
+
+              <div class="config-row">
+                <span>Git provider</span>
+                <strong>GitHub</strong>
+              </div>
+
+              <div class="config-row">
+                <span>Repository</span>
+                <strong>username/portfolio</strong>
+              </div>
+
+              <div class="config-row">
+                <span>Framework</span>
+                <strong>Vite</strong>
+              </div>
+
+              <div class="config-row">
+                <span>Install command</span>
+                <strong>npm install</strong>
+              </div>
+
+              <div class="config-row">
+                <span>Build command</span>
+                <strong>npm run build</strong>
+              </div>
+
+              <div class="config-row">
+                <span>Output directory</span>
+                <strong>dist</strong>
+              </div>
+
+              <div class="progress-track">
+                <div class="progress-fill"></div>
+              </div>
+
+              <div class="showcase-footer">
+                <span>BUILD PROCESS COMPLETE</span>
+                <span>100% / PREVIEW</span>
+              </div>
+
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+    </section>
+
+
+    <!-- ======================================
+         FEATURES
+    ======================================= -->
+
+    <section class="features" id="features">
+
+      <div class="container">
+
+        <div class="features-heading reveal">
+
+          <div>
+            <span class="eyebrow">WHAT DEVPOYLZ DOES</span>
+            <h2 class="section-heading">
+              Everything between<br>code and live.
+            </h2>
+          </div>
+
+          <p>
+            A focused deployment workflow built around the tools
+            and projects developers already work with.
+          </p>
+
+        </div>
+
+
+        <div class="feature-grid">
+
+          <article class="feature reveal">
+
+            <span class="feature-number">01 / INTEGRATION</span>
+            <span class="feature-symbol">⌘</span>
+
+            <h3>GitHub Integration</h3>
+
+            <p>
+              Connect existing repositories and bring your source
+              code directly into your deployment workflow.
+            </p>
+
+            <span class="feature-detail">REPOSITORY CONNECTION</span>
+
+          </article>
+
+
+          <article class="feature reveal">
+
+            <span class="feature-number">02 / DETECTION</span>
+            <span class="feature-symbol">⌕</span>
+
+            <h3>Framework Awareness</h3>
+
+            <p>
+              Identify supported project frameworks and use the
+              relevant build configuration for your application.
+            </p>
+
+            <span class="feature-detail">PROJECT DETECTION</span>
+
+          </article>
+
+
+          <article class="feature reveal">
+
+            <span class="feature-number">03 / PIPELINE</span>
+            <span class="feature-symbol">↳</span>
+
+            <h3>Automated Builds</h3>
+
+            <p>
+              Run dependency installation and configured build
+              commands through the deployment process.
+            </p>
+
+            <span class="feature-detail">BUILD EXECUTION</span>
+
+          </article>
+
+
+          <article class="feature reveal">
+
+            <span class="feature-number">04 / DELIVERY</span>
+            <span class="feature-symbol">↗</span>
+
+            <h3>Live Deployments</h3>
+
+            <p>
+              Publish successful build outputs and make your
+              application accessible through its deployment URL.
+            </p>
+
+            <span class="feature-detail">PUBLISHED APPLICATIONS</span>
+
+          </article>
+
+
+          <article class="feature reveal">
+
+            <span class="feature-number">05 / VISIBILITY</span>
+            <span class="feature-symbol">≡</span>
+
+            <h3>Build Feedback</h3>
+
+            <p>
+              Review deployment results and understand whether
+              your configured build process completed successfully.
+            </p>
+
+            <span class="feature-detail">BUILD RESULTS</span>
+
+          </article>
+
+
+          <article class="feature reveal">
+
+            <span class="feature-number">06 / ORGANISATION</span>
+            <span class="feature-symbol">▦</span>
+
+            <h3>Project Management</h3>
+
+            <p>
+              Keep your deployed projects organised and access
+              their configuration and deployment information.
+            </p>
+
+            <span class="feature-detail">PROJECT OVERVIEW</span>
+
+          </article>
+
+        </div>
+
+      </div>
+
+    </section>
+
+
+    <!-- ======================================
+         WORKFLOW
+    ======================================= -->
+
+    <section class="workflow" id="workflow">
+
+      <div class="container">
+
+        <div class="workflow-header reveal">
+
+          <div>
+            <span class="eyebrow">THE WORKFLOW</span>
+            <h2 class="section-heading">
+              Four steps.<br>One live project.
+            </h2>
+          </div>
+
+          <p>
+            No complicated deployment routine. Just a clear
+            progression from an existing repository to a
+            published application.
+          </p>
+
+        </div>
+
+
+        <div class="workflow-steps">
+
+          <article class="workflow-step reveal">
+
+            <span class="step-number">01 — CONNECT</span>
+
+            <div class="step-line"></div>
+
+            <h3>Connect GitHub</h3>
+
+            <p>
+              Select your existing GitHub repository and
+              connect it to a Devployz project.
+            </p>
+
+            <span class="step-tech">SOURCE / GITHUB</span>
+
+          </article>
+
+
+          <article class="workflow-step reveal">
+
+            <span class="step-number">02 — CONFIGURE</span>
+
+            <div class="step-line"></div>
+
+            <h3>Configure your project</h3>
+
+            <p>
+              Review the detected framework, installation
+              command, build command, and output directory.
+            </p>
+
+            <span class="step-tech">SETUP / FRAMEWORK</span>
+
+          </article>
+
+
+          <article class="workflow-step reveal">
+
+            <span class="step-number">03 — BUILD</span>
+
+            <div class="step-line"></div>
+
+            <h3>Build automatically</h3>
+
+            <p>
+              Devployz executes the configured build process
+              and provides feedback on its result.
+            </p>
+
+            <span class="step-tech">PROCESS / BUILD</span>
+
+          </article>
+
+
+          <article class="workflow-step reveal">
+
+            <span class="step-number">04 — DEPLOY</span>
+
+            <div class="step-line"></div>
+
+            <h3>Publish your application</h3>
+
+            <p>
+              Your successful build output is published
+              and made available through a live URL.
+            </p>
+
+            <span class="step-tech">OUTPUT / LIVE URL</span>
+
+          </article>
+
+        </div>
+
+      </div>
+
+    </section>
+
+
+    <!-- ======================================
+         DEVELOPER SECTION
+    ======================================= -->
+
+    <section class="developer-section">
+
+      <div class="container developer-grid">
+
+        <div class="developer-copy reveal">
+
+          <span class="eyebrow">MADE FOR DEVELOPERS</span>
+
+          <h2 class="section-heading">
+            Spend less time configuring. More time building.
+          </h2>
+
+          <p>
+            Your project already has a codebase, a framework,
+            and a build process. Devployz is designed to connect
+            those existing pieces to a straightforward hosting workflow.
+          </p>
+
+          <div class="developer-points">
+
+            <div class="developer-point">
+              <span>01</span>
+              Work with existing GitHub repositories
+            </div>
+
+            <div class="developer-point">
+              <span>02</span>
+              Configure different frontend frameworks
+            </div>
+
+            <div class="developer-point">
+              <span>03</span>
+              Keep build settings in one place
+            </div>
+
+            <div class="developer-point">
+              <span>04</span>
+              Publish without manually managing hosting infrastructure
+            </div>
+
+          </div>
+
+        </div>
+
+
+        <!-- Technical configuration visual -->
+
+        <div class="developer-code reveal">
+
+          <div class="code-header">
+            <span>PROJECT / BUILD CONFIGURATION</span>
+            <span>SETTINGS</span>
+          </div>
+
+          <div class="code-body">
+
+            <div class="code-comment">
+              // Example project configuration
+            </div>
+
+            <div>
+              <span class="code-key">project</span>:
+              <span class="code-value">"my-portfolio"</span>
+            </div>
+
+            <div>
+              <span class="code-key">repository</span>:
+              <span class="code-value">"username/portfolio"</span>
+            </div>
+
+            <div class="code-divider"></div>
+
+            <div class="code-comment">
+              // Framework and build settings
+            </div>
+
+            <div>
+              <span class="code-key">framework</span>:
+              <span class="code-value">"vite"</span>
+            </div>
+
+            <div>
+              <span class="code-key">installCommand</span>:
+            </div>
+
+            <div class="code-indent">
+              <span class="code-value">"npm install"</span>
+            </div>
+
+            <div>
+              <span class="code-key">buildCommand</span>:
+            </div>
+
+            <div class="code-indent">
+              <span class="code-value">"npm run build"</span>
+            </div>
+
+            <div>
+              <span class="code-key">outputDirectory</span>:
+              <span class="code-value">"dist"</span>
+            </div>
+
+            <div class="code-divider"></div>
+
+            <div class="code-comment">
+              // Deployment result
+            </div>
+
+            <div>
+              <span class="code-key">buildStatus</span>:
+              <span class="code-value">"completed"</span>
+            </div>
+
+            <div>
+              <span class="code-key">deployment</span>:
+              <span class="code-value">"published"</span>
+            </div>
+
+          </div>
+
+          <div class="code-divider"></div>
+
+          <div class="code-status">
+            <span>CONFIGURATION PREVIEW</span>
+            <span>ILLUSTRATIVE</span>
+          </div>
+
+        </div>
+
+      </div>
+
+    </section>
+
+
+    <!-- ======================================
+         FINAL CTA
+    ======================================= -->
+
+    <section class="final-cta">
+
+      <div class="container final-cta-inner reveal">
+
+        <span class="eyebrow">READY WHEN YOU ARE</span>
+
+        <h2>
+          Your next project deserves to be live.
+        </h2>
+
+        <p>
+          Bring your repository. Configure your build.
+          Let Devployz take your project from code to deployment.
+        </p>
+
+        <a href="auth.html" class="btn btn-primary">
+          Start Deploying <span class="btn-arrow">↗</span>
+        </a>
+
+      </div>
+
     </section>
 
   </main>
 
-  <!-- =========================
-       FOOTER
-  ========================== -->
 
-  <footer>
+  <!-- ======================================
+       FOOTER
+  ======================================= -->
+
+  <footer class="footer">
+
     <div class="container">
 
-      <div class="footer-inner">
+      <div class="footer-main">
 
-        <div class="footer-copy">
-          © 2026 Devploy. Built for developers.
+        <div class="footer-brand">
+
+          <a href="#top" class="brand">
+            <span class="brand-symbol">D.</span>
+            <span>devployz</span>
+          </a>
+
+          <p>
+            From GitHub repositories to live applications.
+            A simpler deployment workflow for developers.
+          </p>
+
         </div>
 
-        <div class="footer-links">
+
+        <div class="footer-column">
+          <h4>Product</h4>
           <a href="#features">Features</a>
           <a href="#workflow">How it works</a>
-          <a href="#deploy">Deploy</a>
+          <a href="dashboard.html">Dashboard</a>
+        </div>
+
+
+        <div class="footer-column">
+          <h4>Account</h4>
+          <a href="auth.html">Login</a>
+          <a href="auth.html">Get Started</a>
+        </div>
+
+
+        <div class="footer-column">
+          <h4>Explore</h4>
+          <a href="#dashboard">Platform overview</a>
+          <a href="#features">Capabilities</a>
+          <a href="#top">Back to top ↑</a>
         </div>
 
       </div>
 
+
+      <div class="footer-bottom">
+
+        <span>© 2026 DEVPOYLZ. ALL RIGHTS RESERVED.</span>
+
+        <a href="#top" class="back-top">
+          BACK TO TOP ↑
+        </a>
+
+      </div>
+
     </div>
+
   </footer>
 
+
+  <!-- ======================================
+       VANILLA JAVASCRIPT
+  ======================================= -->
+
   <script>
-    // Subtle terminal typing effect
-    const terminal = document.querySelector(".terminal");
+    document.addEventListener("DOMContentLoaded", () => {
 
-    if (terminal) {
-      terminal.addEventListener("mouseenter", () => {
-        terminal.style.transform = "translateY(-4px)";
-        terminal.style.transition = "transform .5s cubic-bezier(.22,1,.36,1)";
-      });
+      /* ------------------------------------
+         MOBILE NAVIGATION
+      ------------------------------------ */
 
-      terminal.addEventListener("mouseleave", () => {
-        terminal.style.transform = "translateY(0)";
-      });
-    }
+      const menuToggle = document.getElementById("menuToggle");
+      const navLinks = document.getElementById("navLinks");
+      const body = document.body;
 
-    // Smooth reveal for sections
-    const revealItems = document.querySelectorAll(
-      ".feature, .step, .stat, .section-heading, .cta"
-    );
+      function closeMenu() {
+        navLinks.classList.remove("open");
+        body.classList.remove("menu-open");
 
-    const observer = new IntersectionObserver(
-      entries => {
-        entries.forEach(entry => {
-          if (!entry.isIntersecting) return;
-
-          entry.target.style.opacity = "1";
-          entry.target.style.transform = "translateY(0)";
-          observer.unobserve(entry.target);
-        });
-      },
-      {
-        threshold: 0.12
+        menuToggle.setAttribute("aria-expanded", "false");
+        menuToggle.setAttribute("aria-label", "Open navigation menu");
+        menuToggle.textContent = "☰";
       }
-    );
 
-    revealItems.forEach(item => {
-      item.style.opacity = "0";
-      item.style.transform = "translateY(25px)";
-      item.style.transition =
-        "opacity .8s cubic-bezier(.22,1,.36,1), transform .8s cubic-bezier(.22,1,.36,1)";
+      function openMenu() {
+        navLinks.classList.add("open");
+        body.classList.add("menu-open");
 
-      observer.observe(item);
+        menuToggle.setAttribute("aria-expanded", "true");
+        menuToggle.setAttribute("aria-label", "Close navigation menu");
+        menuToggle.textContent = "✕";
+      }
+
+      menuToggle.addEventListener("click", () => {
+        const isOpen = navLinks.classList.contains("open");
+
+        if (isOpen) {
+          closeMenu();
+        } else {
+          openMenu();
+        }
+      });
+
+      // Close menu when a navigation link is selected.
+
+      navLinks.querySelectorAll("a").forEach(link => {
+        link.addEventListener("click", closeMenu);
+      });
+
+      // Close menu with Escape.
+
+      document.addEventListener("keydown", event => {
+        if (event.key === "Escape") {
+          closeMenu();
+        }
+      });
+
+      // Reset mobile navigation when resizing to desktop.
+
+      window.addEventListener("resize", () => {
+        if (window.innerWidth > 680) {
+          closeMenu();
+        }
+      });
+
+
+      /* ------------------------------------
+         SMOOTH SCROLLING
+      ------------------------------------ */
+
+      document.querySelectorAll('a[href^="#"]').forEach(link => {
+
+        link.addEventListener("click", event => {
+
+          const targetId = link.getAttribute("href");
+
+          if (!targetId || targetId === "#") return;
+
+          const target = document.querySelector(targetId);
+
+          if (!target) return;
+
+          event.preventDefault();
+
+          target.scrollIntoView({
+            behavior: window.matchMedia(
+              "(prefers-reduced-motion: reduce)"
+            ).matches ? "auto" : "smooth",
+            block: "start"
+          });
+
+        });
+
+      });
+
+
+      /* ------------------------------------
+         SCROLL REVEAL ANIMATIONS
+      ------------------------------------ */
+
+      const revealElements = document.querySelectorAll(".reveal");
+
+      const reducedMotion = window.matchMedia(
+        "(prefers-reduced-motion: reduce)"
+      ).matches;
+
+      if (reducedMotion || !("IntersectionObserver" in window)) {
+
+        revealElements.forEach(element => {
+          element.classList.add("visible");
+        });
+
+      } else {
+
+        const observer = new IntersectionObserver(
+          (entries, observerInstance) => {
+
+            entries.forEach(entry => {
+
+              if (entry.isIntersecting) {
+
+                entry.target.classList.add("visible");
+
+                observerInstance.unobserve(entry.target);
+
+              }
+
+            });
+
+          },
+          {
+            threshold: 0.12,
+            rootMargin: "0px 0px -35px 0px"
+          }
+        );
+
+        revealElements.forEach(element => {
+          observer.observe(element);
+        });
+
+      }
+
     });
   </script>
 
 </body>
 </html>
-
