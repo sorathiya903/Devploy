@@ -22,6 +22,7 @@ jobs:
         id: config
         shell: bash
         env:
+          PROJECT_NAME: ${{ github.event.client_payload.project_name }}
           REPO_URL: ${{ github.event.client_payload.repo_url }}
           COMMIT_SHA: ${{ github.event.client_payload.commit_sha }}
           BASE_DIR: ${{ github.event.client_payload.base_dir }}
@@ -40,6 +41,11 @@ jobs:
           echo "Output directory: $OUTPUT_DIR"
           echo "============================================"
 
+          if [[ ! "$PROJECT_NAME" =~ ^[a-z0-9-]{1,50}$ ]]; then
+            echo "::error::Invalid project name"
+            exit 1
+          fi
+          
           if [[ ! "$REPO_URL" =~ ^https://github\.com/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+(\.git)?/?$ ]]; then
             echo "::error::Invalid GitHub repository URL"
             exit 1
@@ -65,6 +71,8 @@ jobs:
             exit 1
           fi
 
+
+          echo "project_name=$PROJECT_NAME" >> "$GITHUB_OUTPUT"
           echo "repo_url=$REPO_URL" >> "$GITHUB_OUTPUT"
           echo "commit_sha=$COMMIT_SHA" >> "$GITHUB_OUTPUT"
           echo "base_dir=$BASE_DIR" >> "$GITHUB_OUTPUT"
@@ -290,6 +298,26 @@ jobs:
           find "$GITHUB_WORKSPACE/artifact" -maxdepth 4 -type f
 
           echo "Artifact prepared successfully"
+
+
+
+      
+      - name: Rewrite deployment paths
+        shell: bash
+        env:
+          PROJECT_NAME: ${{ steps.config.outputs.project_name }}
+        run: |
+          set -euo pipefail
+
+          echo "========== PATH REWRITING =========="
+
+          python scripts/rewrite_paths.py \
+            artifact \
+            "$PROJECT_NAME"
+
+          echo "========== VERIFYING ARTIFACT =========="
+
+          find artifact -maxdepth 3 -type f
 
       # 9. Upload artifact
       - name: Upload build artifact
