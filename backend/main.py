@@ -414,7 +414,7 @@ def framework_deploy_worker(
                 base_dir=base_dir,
                 build_command=build_command,
                 install_command=install_command,
-                output_dir=output_dir
+                output_dir=output_dir,
                 project=project_name
             )
 
