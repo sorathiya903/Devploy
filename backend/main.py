@@ -537,47 +537,86 @@ def upload_project_to_b2(local_path, project_name, deployment_id):
     return uploaded
 
 
+
 def delete_b2_prefix(prefix):
-    paginator = s3_client.get_paginator("list_objects_v2")
+    """
+    Permanently delete all files, previous versions,
+    and delete markers under a B2 project prefix.
+    """
+
+    paginator = s3_client.get_paginator(
+        "list_object_versions"
+    )
 
     deleted_count = 0
 
-    for page in paginator.paginate(
-        Bucket=B2_BUCKET_NAME,
-        Prefix=prefix
-    ):
-        objects = page.get("Contents", [])
+    try:
+        for page in paginator.paginate(
+            Bucket=B2_BUCKET_NAME,
+            Prefix=prefix
+        ):
 
-        for i in range(0, len(objects), 1000):
-            batch = objects[i:i + 1000]
+            objects_to_delete = []
 
-            if not batch:
-                continue
+            # Collect every file version
+            for version in page.get("Versions", []):
+                objects_to_delete.append({
+                    "Key": version["Key"],
+                    "VersionId": version["VersionId"]
+                })
 
-            response = s3_client.delete_objects(
-                Bucket=B2_BUCKET_NAME,
-                Delete={
-                    "Objects": [
-                        {"Key": obj["Key"]}
-                        for obj in batch
-                    ],
-                    "Quiet": False
-                }
-            )
+            # Collect delete markers too
+            for marker in page.get("DeleteMarkers", []):
+                objects_to_delete.append({
+                    "Key": marker["Key"],
+                    "VersionId": marker["VersionId"]
+                })
 
-            errors = response.get("Errors", [])
+            # Delete in batches of maximum 1000
+            for i in range(0, len(objects_to_delete), 1000):
 
-            if errors:
-                raise Exception(
-                    f"Failed to delete {len(errors)} B2 objects: "
-                    f"{errors[:3]}"
+                batch = objects_to_delete[i:i + 1000]
+
+                if not batch:
+                    continue
+
+                response = s3_client.delete_objects(
+                    Bucket=B2_BUCKET_NAME,
+                    Delete={
+                        "Objects": batch,
+                        "Quiet": False
+                    }
                 )
 
-            deleted_count += len(
-                response.get("Deleted", [])
-            )
+                errors = response.get("Errors", [])
 
-    return deleted_count
+                if errors:
+                    print("B2 DELETE ERRORS:", errors)
+
+                    raise Exception(
+                        f"Failed to delete B2 versions: {errors[:5]}"
+                    )
+
+                deleted = response.get("Deleted", [])
+
+                deleted_count += len(deleted)
+
+                print(
+                    f"Deleted {len(deleted)} B2 versions "
+                    f"from {prefix}"
+                )
+
+        print(
+            f"B2 deletion completed: {prefix}, "
+            f"total versions deleted: {deleted_count}"
+        )
+
+        return deleted_count
+
+    except Exception as e:
+        print("B2 VERSION DELETION ERROR:", repr(e))
+        raise
+
 def get_b2_object(key):
 
     try:
