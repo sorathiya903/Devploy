@@ -373,7 +373,7 @@ def build_with_github_actions(
         download.close()
 
 
-def framework_deploy_worker(
+async def framework_deploy_worker(
     project_name,
     repo_url,
     base_dir,
