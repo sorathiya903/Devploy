@@ -823,7 +823,7 @@ def deploy_framework(
     )
 
     threading.Thread(
-        target=framework_deploy_worker,
+        target=await framework_deploy_worker,
         args=(
             project_name,
             data.repo_url.strip(),
