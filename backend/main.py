@@ -497,7 +497,7 @@ def b2_project_prefix(project_name, deployment_id):
     return f"projects/{project_name}/{deployment_id}/"
 
 
-def upload_project_to_b2(local_path, project_name, deployment_id):
+async def upload_project_to_b2(local_path, project_name, deployment_id):
 
     prefix = b2_project_prefix(project_name, deployment_id)
     uploaded = 0
