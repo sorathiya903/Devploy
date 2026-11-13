@@ -373,7 +373,8 @@ def build_with_github_actions(
         download.close()
 
 
-async def framework_deploy_worker(
+
+def framework_deploy_worker(
     project_name,
     repo_url,
     base_dir,
@@ -823,7 +824,7 @@ async def deploy_framework(
     )
 
     threading.Thread(
-        target=await framework_deploy_worker,
+        target= framework_deploy_worker,
         args=(
             project_name,
             data.repo_url.strip(),
