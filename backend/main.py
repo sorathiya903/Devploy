@@ -424,7 +424,7 @@ async def framework_deploy_worker(
                 "uploading"
             )
 
-            uploaded = upload_project_to_b2(
+            uploaded = await upload_project_to_b2(
                 build_dir,
                 project_name,
                 deployment_id
@@ -1202,7 +1202,7 @@ def deploy_commit_worker(
                 "uploading"
             )
 
-            uploaded = upload_project_to_b2(
+            uploaded = await upload_project_to_b2(
                 source_path,
                 project_name,
                 deployment_id
@@ -1355,14 +1355,29 @@ def deploy_worker(project_name, repo_url, base_dir, username):
                 if os.path.commonpath(
                     [repo_path, source_path]
                 ) != repo_path:
+                    await push_log(
+                       project_name,
+                       "Invaild Base Directory",
+                       "failed"
+                      )
                     raise Exception("Invalid base directory")
 
             if not os.path.isdir(source_path):
+                await push_log(
+                project_name,
+                "Base Directory not found",
+                "failed"
+                  )
                 raise Exception("Base directory not found")
 
             if not os.path.isfile(
                 os.path.join(source_path, "index.html")
             ):
+                await push_log(
+                        project_name,
+                        f"index.html not found in {base_dir}",
+                        "failed"
+                     )
                 raise Exception("index.html not found")
 
             await push_log(
@@ -1371,7 +1386,7 @@ def deploy_worker(project_name, repo_url, base_dir, username):
                 "uploading"
             )
 
-            uploaded = upload_project_to_b2(
+            uploaded =await upload_project_to_b2(
                 source_path,
                 project_name,
                 deployment_id
