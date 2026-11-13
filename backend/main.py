@@ -756,7 +756,7 @@ async def push_log(project, message, status=None):
 
 
 @app.post("/deploy/framework")
-def deploy_framework(
+async def deploy_framework(
     data: FrameworkDeployRequest,
     authorization: str = Header(None)
 ):
@@ -1104,7 +1104,7 @@ def project_commits(
             "error": str(e)
     }
 
-def deploy_commit_worker(
+async def deploy_commit_worker(
     project_name,
     repo_url,
     base_dir,
@@ -1276,7 +1276,7 @@ def deploy_commit_worker(
 
     asyncio.run(run())
 
-def deploy_worker(project_name, repo_url, base_dir, username):
+async def deploy_worker(project_name, repo_url, base_dir, username):
 
     async def run():
 
