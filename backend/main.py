@@ -526,6 +526,12 @@ def upload_project_to_b2(local_path, project_name, deployment_id):
 
             content_type, _ = mimetypes.guess_type(file_path)
 
+            await push_log(
+                project_name,
+                f"Uploading {filename} whose path is {file_path}",
+                "uploading"
+            )
+
             s3_client.upload_file(
                 file_path,
                 B2_BUCKET_NAME,
@@ -537,6 +543,13 @@ def upload_project_to_b2(local_path, project_name, deployment_id):
             )
 
             uploaded += 1
+            await push_log(
+                project_name,
+                f"Uploaded {filename} whose path is {file_path}",
+                "uploaded"
+            )
+
+    
 
     return uploaded
 
